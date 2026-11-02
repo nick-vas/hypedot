@@ -253,12 +253,12 @@ separate, headless tool.
 
 ## Skills
 
-52 skills in [`.agents/skills/`](.agents/skills). Each `SKILL.md` description says when to use it.
+53 skills in [`.agents/skills/`](.agents/skills). Each `SKILL.md` description says when to use it.
 
 - **Test and verify**: `godot-test-loop`, `verify-before-done`, `ui-flows`, `godot-diagnose`, `godot-pitfalls`, `automation-hooks`, `godot-editor-bridge`, `debug-tools`
 - **Design and plan**: `game-plan`, `game-design`, `game-playtest`, `progression`, `narrative`
 - **Code and systems**: `patterns`, `math`, `algorithms`, `procgen`, `game-ai`, `game-data`, `saves`, `input`, `xr`, `determinism`, `godot-addons`, `llm`
-- **Look, sound and feel**: `game-juice`, `camera`, `animation`, `godot-shaders-vfx`, `asset-pipeline`, `game-audio`, `ui-accessibility`, `localization`, `performance`
+- **Look, sound and feel**: `game-juice`, `camera`, `animation`, `godot-shaders-vfx`, `asset-pipeline`, `game-audio`, `ui-accessibility`, `typography`, `localization`, `performance`
 - **Online**: `multiplayer`, `servers`, `anti-cheat`, `game-telemetry`, `modding`
 - **Ship**: `godot-export-release`, `release-readiness`, `mobile-web`, `steam`, `store-page`, `legal`, `console-cert`
 - **Run by hand**: `game` (where the game stands, what next), `kit` (every command, skill and subagent, one line each), `look` (style guide and screenshot critique), `retro`, `kit-review`, `weekly-review`

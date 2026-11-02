@@ -105,6 +105,7 @@ Each runs as `pwsh tests/<script>`. "Godot" means the kit downloads or finds God
 | `Test-Flows.ps1` | the `flows` runner's rotation steps (`resize`, `hold`, `release`) and errors (`flows-fixture`) | Godot |
 | `Test-Playthrough.ps1` | the `playthrough` runner (`playthrough-fixture`) | Godot; `-NoGodot` for the log part |
 | `Test-Placement.ps1` | `ci/godot/templates/placement_check.gd` (`placement-fixture`), from a GUT test and as the `placement` runner; limits read from GDScript and C# | Godot |
+| `Test-Typography.ps1` | the `typography` skill's Godot claims: every engine name its `godot.md` quotes against ClassDB (a made-up name must fail), and line pitch as font height plus `line_spacing`, `spacing_glyph` in pixels, tabular and proportional figures, `Label.uppercase`, feature names to OpenType tags (`typography-fixture`, GUT) | Godot |
 | `Test-Xr.ps1` | the `xr` skill: every engine name it quotes against ClassDB and project settings (a made-up name must fail), a scene with an `XROrigin3D` running with no XR interface, a tracker standing in for a controller, and the tested numbers of `xr_math.gd` (`xr-fixture`, GUT) | Godot |
 | `Test-ReportPins.ps1` | the report pins add-on: reports saved in 3D and 2D, found once, kept to their scene, placed on the camera's screen; the editor loading it headless (a project made in a temporary folder) | Godot |
 | `Test-StaleTres.ps1` | `validate`'s stale `.tres` keys (`tres-fixture`) | Godot |

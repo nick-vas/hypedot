@@ -25,7 +25,10 @@ formula (`ui-accessibility`); do not judge it by eye.
 
 ## Type
 
-Font family and weights, with a sans-serif option. Smallest text at 1080p, measured as body height (ascender to
+One row per text role (title, heading, body or dialogue, label or button, HUD numbers, caption or subtitle): font, weight,
+size at 1080p, line spacing (120-145% of the size) and, for body text, the line length (45-90 characters). At most two
+families, each with a role; HUD numbers in equal-width (tabular) figures; capitals only under one line, with 5-12%
+letter-spacing (`typography`). Marks in the text: curly quotes, `…`, `–` and `—`, never `...` or `--`. A sans-serif option. Smallest text at 1080p, measured as body height (ascender to
 descender): 18 px on PC, 26 px on console and TV (XAG 101); a UI scale setting up to 200%. HUD numbers 32 px or more.
 
 ## Readability

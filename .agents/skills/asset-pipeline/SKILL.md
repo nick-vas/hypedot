@@ -95,7 +95,7 @@ tool or the editor and commit it. Check the result with `bench`: `drawCalls` bef
   `VisibilityRangeEnd` set end to end, and `VisibilityRangeFadeMode` to cross-fade.
 - Measure: `bench` reports `primitives`; run it with the camera near and far (`-GameArgs '--camera=far'`).
 
-## 4. Palettes
+## 4. Palettes and fonts
 
 - Pick one palette before drawing, and keep it small: Lospec (lospec.com) lists thousands, each downloadable as `.hex`, `.gpl`
   or a PNG swatch (`https://lospec.com/palette-list/<name>.hex`). No licence is stated for palettes; credit the author anyway.
@@ -105,6 +105,19 @@ tool or the editor and commit it. Check the result with `bench`: `drawCalls` bef
 - `shot` checks each screenshot against that table (CIEDE2000; anti-aliased edges and blends of two palette colours pass):
   `shots[].palette.offPalettePercent` and `colours[]` name what is off, and `<name>.palette.png` shows it in magenta.
   Gate it in CI with `-MaxOffPalettePercent 1`; lit 3D shading is off-palette by nature, so gate flat-shaded and UI screens.
+
+### Fonts
+
+- **Choose a family drawn for text** (several weights, real italics if you use them, the characters your languages need),
+  not a display face, for body, dialogue and menus; a display face is for the logo and title. Two families at most, each
+  with a role (`typography`).
+- **Check before you import:** the licence lets you embed it in a game (OFL-1.1 does), it has every mark the text uses
+  (`’ “ ” – — … × −`, accents; `Font.has_char()`), and its digits are equal-width, or it offers tabular figures for the HUD.
+  Record it in `assets.json` like any other asset (below), with its licence file.
+- **Compare by eye at the target size:** the same pixel size is not the same apparent size in two fonts. `shot` a
+  specimen scene (body paragraph, HUD numbers, a label in capitals, the longest translation) in each candidate.
+- **Import settings** (antialiasing, hinting, subpixel positioning, MSDF for scaled or world-space text, fixed size for bitmap
+  fonts) and the measured line-spacing and tracking numbers: `typography` and its `godot.md`. Pixel fonts at whole multiples.
 
 ## 5. Free libraries, and where each asset came from
 

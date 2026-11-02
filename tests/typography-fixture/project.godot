@@ -1,0 +1,8 @@
+; The typography fixture: no scene. tests/Test-Typography.ps1 writes api.txt (the engine names the typography skill quotes)
+; into test/ and runs test/test_typography.gd with the kit's gut runner.
+config_version=5
+
+[application]
+
+config/name="typography-fixture"
+config/features=PackedStringArray("4.7")

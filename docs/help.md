@@ -271,6 +271,9 @@ Music, effects, voices, volume settings, adaptive music and loudness.
 ### ui-accessibility
 Menus, HUD and settings that work at any resolution, with a gamepad alone, a screen reader or colour blindness.
 
+### typography
+Which fonts, how many, and how far apart: roles, line spacing and length, capitals, tabular figures, pixel fonts, quotes, dashes and ellipses.
+
 ### localization
 Translations, plurals, right-to-left and CJK text, and text that does not fit.
 
@@ -322,7 +325,7 @@ How the page `help` writes sorts the skills. One bullet per group, in the order 
 - **Test and verify**: `godot-test-loop`, `verify-before-done`, `ui-flows`, `godot-diagnose`, `godot-pitfalls`, `automation-hooks`, `debug-tools`, `godot-editor-bridge`
 - **Plan and design**: `game-plan`, `game-design`, `game-playtest`, `progression`, `narrative`
 - **Code and systems**: `patterns`, `math`, `algorithms`, `procgen`, `game-ai`, `game-data`, `saves`, `input`, `xr`, `determinism`, `godot-addons`, `llm`
-- **Look and feel**: `game-juice`, `camera`, `animation`, `godot-shaders-vfx`, `asset-pipeline`, `game-audio`, `ui-accessibility`, `localization`
+- **Look and feel**: `game-juice`, `camera`, `animation`, `godot-shaders-vfx`, `asset-pipeline`, `game-audio`, `ui-accessibility`, `typography`, `localization`
 - **Performance and online**: `performance`, `multiplayer`, `servers`, `anti-cheat`, `game-telemetry`, `modding`
 - **Ship and sell**: `godot-export-release`, `release-readiness`, `mobile-web`, `steam`, `store-page`, `legal`, `console-cert`
 
