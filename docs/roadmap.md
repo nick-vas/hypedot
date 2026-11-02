@@ -114,7 +114,7 @@ a removed task's card, which only the mock has seen.
    content follows the same rule: a lesson cites its evidence, a pattern cites the Godot API it uses, a version is tested.
 4. **Upkeep budget.** The validator fails a `SKILL.md` at 16 KB (warns from 15.5 KB), a description over 1,024
    characters and the `AGENTS.md` template over 4 KB; detail goes to side files in the skill's folder, whose kit commands
-   it checks too. There is no limit on the total: the 52 skills come to about 580 KB with their side files, but only the
+   it checks too. There is no limit on the total: the 53 skills come to about 580 KB with their side files, but only the
    descriptions (about 9.6 KB) load into every session. A new skill that shares a trigger with an old one is merged into
    it instead; every command has a self-test; a feature nobody used for three months is proposed for removal.
 5. **The owner sees the reasoning.** Plans, assessments and decisions are written to files in the game repository and mirrored
@@ -124,6 +124,20 @@ a removed task's card, which only the mock has seen.
 
 What was left open by the research passes (`docs/studio-lessons.md`, `docs/valve.md`, `docs/art.md`, `docs/audio.md`
 and the other topic pages), grouped by what it waits for. Done items are in `CHANGELOG.md`.
+
+### Typography sources not read (`docs/typography.md`)
+
+The `typography` skill rests on Practical Typography because these could not be read from the build environment on 2026-11-02.
+Each needs the owner: paste the text, save the pages and attach them, or allow the host.
+
+- **Google Fonts Knowledge** (anatomy, classification, readability, variable fonts). A script-rendered app whose script was
+  blocked in transit (`ERR_BLOCKED_BY_ORB`); the likeliest fix is allowing `www.gstatic.com` for the session, or saving the
+  articles as text.
+- **Letterform Archive toolkit, AIGA, TypeThursday.** Bot checks (403, 403, 429): paste or attach the pages you want read.
+- **thinkingwithtype.com, historyoftype.com.** No connection (closed after ten seconds; 502). They may be down or denied; the
+  list called the second "free" and that is unconfirmed.
+- **Decide:** a short copy-editing note for dialogue and credits (curly quotes, real dashes and ellipses, one space after a full
+  stop, non-breaking spaces) from the same book, in `localization` or its own skill. Left out of `typography` on purpose.
 
 ### CI supply chain (found in the review of the CI configuration)
 

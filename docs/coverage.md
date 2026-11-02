@@ -13,7 +13,7 @@ gives the percentages and the floors CI holds them to.
 | [Error codes](#error-codes) | 61 | 59 |
 | [Library files](#library-files) | 37 | 37 |
 | [Tools](#tools) | 22 | 22 |
-| [Skills](#skills) | 52 | 52 |
+| [Skills](#skills) | 53 | 53 |
 | [Subagents](#subagents) | 2 | 2 |
 | [Workflow jobs, actions, hooks and the GitLab template](#workflow-jobs-actions-hooks-and-the-gitlab-template) | 34 | 31 |
 
@@ -23,7 +23,7 @@ The values of `hyperdot.ps1`'s `-Command`, and the self-tests and workflow steps
 
 | Command | Covered by |
 |---|---|
-| `test` | `Test-DotnetTempDir.ps1`, `Test-ErrorCodes.ps1`, `Test-ErrorKeys.ps1`, `Test-EvalGraders.ps1`, `Test-Flaky.ps1`, `Test-Flows.ps1`, `Test-Handoffs.ps1`, `Test-Help.ps1` and 20 more |
+| `test` | `Test-DotnetTempDir.ps1`, `Test-ErrorCodes.ps1`, `Test-ErrorKeys.ps1`, `Test-EvalGraders.ps1`, `Test-Flaky.ps1`, `Test-Flows.ps1`, `Test-Handoffs.ps1`, `Test-Help.ps1` and 21 more |
 | `build` | `Test-CrashRetry.ps1`, `Test-ErrorCodes.ps1` |
 | `export` | `Test-BuildSize.ps1`, `Test-CrashRetry.ps1`, `Test-ErrorCodes.ps1`, `Test-GameVersion.ps1`, `Test-GpuValidation.ps1`, `Test-Web.ps1`, self-test.yml local-windows: Export the Windows build and launch it |
 | `setup` | `Test-BenchmarkIsolation.ps1`, `Test-DownloadFailed.ps1`, `Test-FieldTest.ps1`, `Test-GameBenchmark.ps1`, `Test-GameProgramme.ps1`, `Test-InstallLock.ps1`, self-test.yml field-test: Godot, self-test.yml game-benchmark: Godot and 1 more |
@@ -237,6 +237,7 @@ The codes in [`docs/json.md`](json.md#error-codes), and the tests that raise the
 | `servers` | `Test-Help.ps1`, `Test-Skills.ps1` |
 | `steam` | `Test-Help.ps1`, `Test-Skills.ps1` |
 | `store-page` | `Test-Help.ps1`, `Test-Skills.ps1` |
+| `typography` | `Test-Help.ps1`, `Test-Skills.ps1`, `Test-Typography.ps1` |
 | `ui-accessibility` | `Test-Help.ps1`, `Test-Skills.ps1` |
 | `ui-flows` | `Test-Help.ps1`, `Test-Skills.ps1` |
 | `verify-before-done` | `Test-Help.ps1`, `Test-Skills.ps1` |
@@ -272,7 +273,7 @@ A job of `self-test.yml` is a test itself (it lists what it runs); another workf
 | self-test.yml/zero-config | itself (on a pull request when the files it exercises change; always on pushes to main and in the nightly run) |
 | self-test.yml/csharp | itself (on a pull request when the files it exercises change; always on pushes to main and in the nightly run) |
 | self-test.yml/explicit-runners | itself (on a pull request when the files it exercises change; always on pushes to main and in the nightly run) |
-| self-test.yml/init | itself (on a pull request when the files it exercises change; always on pushes to main and in the nightly run); runs `Test-ErrorKeys.ps1`, `Test-Flaky.ps1`, `Test-Localization.ps1`, `Test-Placement.ps1`, `Test-ReportPins.ps1`, `Test-ResultsDir.ps1`, `Test-SkillShaders.ps1`, `Test-Xr.ps1`, 5 step(s) of its own |
+| self-test.yml/init | itself (on a pull request when the files it exercises change; always on pushes to main and in the nightly run); runs `Test-ErrorKeys.ps1`, `Test-Flaky.ps1`, `Test-Localization.ps1`, `Test-Placement.ps1`, `Test-ReportPins.ps1`, `Test-ResultsDir.ps1`, `Test-SkillShaders.ps1`, `Test-Typography.ps1`, `Test-Xr.ps1`, 5 step(s) of its own |
 | self-test.yml/measure | itself (on a pull request when the files it exercises change; always on pushes to main and in the nightly run); runs `Test-Audio.ps1`, `Test-BenchHotspots.ps1`, `Test-BenchSweep.ps1`, `Test-Capture.ps1`, `Test-ColorVision.ps1`, `Test-Credits.ps1`, `Test-Deck.ps1`, `Test-ErrorCodes.ps1`, `Test-Flows.ps1`, `Test-KitPaths.ps1`, `Test-Layout.ps1`, `Test-MonoAudio.ps1`, `Test-Palette.ps1`, `Test-Playthrough.ps1`, `Test-ShotChanged.ps1`, `Test-Soak.ps1`, `Test-StaleTres.ps1`, `Test-TextSize.ps1`, 4 step(s) of its own |
 | self-test.yml/game-benchmark | itself (on a pull request when the files it exercises change; always on pushes to main and in the nightly run); runs `Test-BenchmarkIsolation.ps1`, `Test-GameBenchmark.ps1`, `Test-GameProgramme.ps1`, 1 step(s) of its own |
 | self-test.yml/changes | itself (on every pull request, push to main and nightly run) |
