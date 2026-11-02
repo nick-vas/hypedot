@@ -8,8 +8,10 @@ description: Use when choosing, sizing or setting the text of a game (UI, HUD an
 Sizes and contrast floors (18 px PC, 26 px console body height at 1080p, 4.5:1) belong to `ui-accessibility`; the `textsize`
 runner enforces them. This skill is about the rest: which fonts, how many, how far apart, and what to do with numbers and
 capitals. The rules come from Butterick's *Practical Typography*, written for pages and screens; they are marked where a game
-differs. The Godot properties and measured numbers are in [godot.md](godot.md); the sources, with what could and could not be
-read, in `docs/typography.md`.
+differs. The Godot properties and measured numbers are in [godot.md](godot.md), the marks and spaces in
+[punctuation.md](punctuation.md); the sources, with what could and could not be read, in `docs/typography.md`.
+The rules also live where they are used: `look` (the style guide), `asset-pipeline` (choosing and shipping fonts),
+`localization` (marks per language) and `ui-flows` (asserting text).
 
 ## Decide roles before fonts
 
@@ -46,6 +48,13 @@ scene override it.
   meaning (damage, the selected item), keep it to a few, and keep the contrast floor. Butterick's advice for a projected
   slide in a dark room (start from grey, brighten until legible) applies to long text on a full-screen black: avoid pure
   white on pure black for paragraphs, and look at a frame.
+
+## Punctuation and spaces
+
+Real marks in the source text: curly quotes and apostrophes (`’`), en dash for ranges, em dash for a break, one ellipsis
+character `…`, `×` and `−` for sums and sizes, one space after punctuation, a non-breaking space inside `Level 3` and
+`10 HP`, and at most one exclamation point at a time. The table, the exceptions and the Godot behaviour are in
+[punctuation.md](punctuation.md); other languages follow their own conventions (`localization`).
 
 ## Numbers and HUD
 

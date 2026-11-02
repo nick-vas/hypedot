@@ -3,6 +3,8 @@
 #   - the numbers it states, measured with the bundled fallback font at 32 px: line pitch is the font height plus
 #     line_spacing, spacing_glyph adds pixels, the default digits are tabular and proportional_figures changes them,
 #     Label.uppercase widens text without changing it, feature names map to the OpenType tags
+#   - punctuation.md: the marks exist in the bundled font, a no-break space keeps a pair on one line, a line may break after a
+#     hyphen or an em dash, and a GDScript escape is the character
 # How antialiasing, hinting or MSDF look on a given font is not here: the skill says to look at a shot frame.
 extends GutTest
 
@@ -107,3 +109,31 @@ func test_feature_names_map_to_the_opentype_tags() -> void:
 		"oldstyle_figures": "onum", "small_capitals": "smcp"}
 	for name in tags:
 		assert_eq(ts.name_to_tag(name), ts.name_to_tag(tags[name]), "%s is %s" % [name, tags[name]])
+
+
+func test_the_marks_exist_in_the_bundled_font() -> void:
+	var font: Font = ThemeDB.fallback_font
+	for code in [0x2018, 0x2019, 0x201C, 0x201D, 0x2013, 0x2014, 0x2026, 0x00A0, 0x2212, 0x00D7]:
+		assert_true(font.has_char(code), "U+%04X is in the bundled font" % code)
+	assert_eq("\u2019", char(0x2019), "a GDScript escape is the character")
+
+
+func _lines(text: String, width: float) -> Array:
+	var ts := TextServerManager.get_primary_interface()
+	var rid := ts.create_shaped_text()
+	ts.shaped_text_add_string(rid, text, ThemeDB.fallback_font.get_rids(), SIZE)
+	var breaks := ts.shaped_text_get_line_breaks(rid, width, 0, TextServer.BREAK_MANDATORY | TextServer.BREAK_WORD_BOUND)
+	var lines := []
+	for i in range(0, breaks.size(), 2):
+		lines.append(text.substr(breaks[i], breaks[i + 1] - breaks[i]))
+	ts.free_rid(rid)
+	return lines
+
+
+func test_a_no_break_space_keeps_a_pair_together_and_dashes_allow_a_break() -> void:
+	var font: Font = ThemeDB.fallback_font
+	var width := _width(font, "xx aaaa bbbb") - 5.0
+	assert_eq(_lines("xx aaaa bbbb", width), ["xx aaaa ", "bbbb"], "an ordinary space breaks before bbbb")
+	assert_eq(_lines("xx aaaa\u00A0bbbb", width), ["xx ", "aaaa\u00A0bbbb"], "a no-break space keeps aaaa and bbbb together")
+	assert_eq(_lines("xx aaaa-bbbb", width), ["xx aaaa-", "bbbb"], "a line may break after a hyphen")
+	assert_eq(_lines("xx aaaa\u2014bbbb", width), ["xx aaaa\u2014", "bbbb"], "a line may break after an em dash")

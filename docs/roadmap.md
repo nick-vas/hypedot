@@ -136,8 +136,6 @@ Each needs the owner: paste the text, save the pages and attach them, or allow t
 - **Letterform Archive toolkit, AIGA, TypeThursday.** Bot checks (403, 403, 429): paste or attach the pages you want read.
 - **thinkingwithtype.com, historyoftype.com.** No connection (closed after ten seconds; 502). They may be down or denied; the
   list called the second "free" and that is unconfirmed.
-- **Decide:** a short copy-editing note for dialogue and credits (curly quotes, real dashes and ellipses, one space after a full
-  stop, non-breaking spaces) from the same book, in `localization` or its own skill. Left out of `typography` on purpose.
 
 ### CI supply chain (found in the review of the CI configuration)
 

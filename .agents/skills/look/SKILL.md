@@ -13,7 +13,8 @@ the visual calls; you show them evidence and record their choices.
 
 `status -Json` returns `look.styleGuide`. If it is null, write `docs/STYLE.md` from `${CLAUDE_PLUGIN_ROOT}/ci/godot/templates/STYLE.md`
 with the user, one multiple-choice question per section: target resolutions (design resolution first), palette (offer the
-colours the game already uses, read from its themes and scenes), type and smallest text size, readability rules, motion rules.
+colours the game already uses, read from its themes and scenes), type (the roles and the one font, size and line spacing of
+each, from `typography`) and smallest text size, readability rules, motion rules.
 Keep the `Resolutions:` line on one line; tools read it.
 
 Before art agents start, gather real reference (photos or video of the places and objects, in `docs/reference/`) and
@@ -34,7 +35,10 @@ Ask it to judge each picture against `docs/STYLE.md` and its "Choices": text too
 outside the safe area, colours off the palette (`shots[].palette`: `offPalettePercent`, `colours[]` and the marked
 `palette.image`; a `palette.problem` means the style guide has no palette table yet), screens that disagree with each other, and the rules in
 `ui-accessibility` that a picture can show (colour alone, focus outline, target size, text painted into images).
-Name the WCAG criterion with each accessibility problem. Take the design resolution again with
+Name the WCAG criterion with each accessibility problem. Ask it for type problems too, by the rules of `typography`: more
+than two families or two fonts in one line, a paragraph in capitals, body lines far outside 45-90 characters, HUD numbers
+that change width, straight quotes, `...` or `--` where `’`, `…` and `—` belong, and a text role that differs between
+screens. Take the design resolution again with
 `-ColorVision protan,deutan,tritan` and ask it to compare each `shots[].colorVision` picture with the original: team colours,
 health bars, map markers, selected or locked states and must-not-confuse pairs that become the same colour there, and
 markers that sink into the background (1.4.1). For each gameplay screen, also ask it to name the first, second and

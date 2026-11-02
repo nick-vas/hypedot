@@ -272,7 +272,7 @@ Music, effects, voices, volume settings, adaptive music and loudness.
 Menus, HUD and settings that work at any resolution, with a gamepad alone, a screen reader or colour blindness.
 
 ### typography
-Which fonts, how many, and how far apart: roles, line spacing and length, capitals, tabular figures, pixel fonts.
+Which fonts, how many, and how far apart: roles, line spacing and length, capitals, tabular figures, pixel fonts, quotes, dashes and ellipses.
 
 ### localization
 Translations, plurals, right-to-left and CJK text, and text that does not fit.

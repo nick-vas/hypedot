@@ -45,13 +45,41 @@ a limit of the list, not of the topic. The "Open" rows are in `docs/roadmap.md` 
 | Colour | "On a page of text, nothing draws the eye more powerfully than a contrast between light and dark colors"; "When everything is emphasized, nothing is emphasized." (color) | Colour for meaning, few of them |
 | Light text in the dark | For slides in a dark room: "start your font at 50% gray and brighten it from there. When it's legible, stop." (presentations) | Applied cautiously to long text on full black |
 
+## Punctuation and spaces (second pass)
+
+Added on the owner's request from the chapters on straight and curly quotes, apostrophes, hyphens and dashes, ellipses, one space
+between sentences, nonbreaking spaces, foot and inch marks, math symbols, question marks and exclamation points, ampersands,
+accented characters and emoticons. They are in `.agents/skills/typography/punctuation.md`, with the Godot behaviour measured by
+`tests/Test-Typography.ps1`: the bundled font has every mark; a no-break space keeps a pair on one line; a line may break after
+a hyphen or an em dash; a flow's `equals` compares exact characters.
+
+| Rule | Quote (chapter) | Taken as |
+|---|---|---|
+| Curly quotes | "curly quotes are more legible on the page and match the other characters better" (straight and curly quotes) | `‘ ’ “ ”` in the source text, except foot and inch marks |
+| Apostrophes | "Apostrophes always point downward." (apostrophes) | `’`, also at the start of a word (`’70s`) |
+| Dashes | "Don't do that—it's another typewriter habit. Use real dashes." (hyphens and dashes) | En dash for ranges, em dash for a break, never `--` |
+| Ellipsis | "So use the ellipsis character, not the approximations." (ellipses) | `…` |
+| Sentence spacing | "Always put exactly one space between sentences." (one space between sentences) | One space after any punctuation |
+| Nonbreaking space | "Put a nonbreaking space before any numeric or alphabetic reference to prevent awkward breaks." (nonbreaking spaces) | `Level 3`, `10 HP`, `Mr. Fox` |
+| Math | `12 × 34 − 56 = 352` right, `12 x 34 - 56` wrong (math symbols) | `×` and `−` in sums and sizes |
+| Exclamation points | "Never use more than one exclamation point in a row" (question marks and exclamation points) | At most one at a time |
+| Accents | "In names, accented characters must always appear accurately." (accented characters) | The font must have them |
+
+The book writes for American English. Quotation marks, dashes and spacing differ by language, so the skill sets them for the
+source text only and leaves other languages to the translator (`localization`).
+
+## Where the knowledge lives
+
+`typography` holds the whole of it. The part each skill needs is also in that skill: `look` (type roles and copy marks in the
+style guide, and what to ask the critique for), `asset-pipeline` (choosing, licensing and importing a font), `localization`
+(marks per language, glyphs for them) and `ui-flows` (asserting text with the real characters).
+
 ## Left out, and why
 
 - **Print and web sizes** ("10-12 points in printed documents, 15-25 pixels on the web"): a game is read at another distance on
   another device, and `ui-accessibility` already holds measured floors for it. The skill keeps the proportions, not the sizes.
-- **Typewriter habits** (one space after a full stop, straight and curly quotes, dashes, ellipses, non-breaking spaces): they
-  matter in translated dialogue and credits too, but belong to a localisation and copy-editing pass, not this skill. Worth a
-  line in the localisation skill if the owner wants it.
+- **Typewriter habits the book lists but a game rarely meets**: signature lines, section and paragraph marks, optional hyphens,
+  tabs and tab stops, hard returns and page breaks. (Quotes, dashes, ellipses and spaces are in, above.)
 - **Word, Pages and CSS recipes**, the book's own font recommendations and its font shop, and the advice against free and
   system fonts as a class: free OFL fonts are the normal choice for a game, and the skill asks for fit and licence instead.
 - **Justified text, first-line indents, page margins, hyphenation**: book layout; a game column is left-aligned in a box.

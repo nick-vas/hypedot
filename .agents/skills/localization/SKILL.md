@@ -112,7 +112,7 @@ off. After each picture the visible labels and buttons are checked, and any prob
 and Arabic from its own fonts and a player's may not. Look at the pictures too (`look`). The `l10n` runner's
 `missing glyphs` covers every string, shown or not.
 
-## 6. Fonts and scripts
+## 6. Fonts, scripts and punctuation
 
 - Godot's default font (Open Sans SemiBold) covers Latin, Cyrillic, Greek and Hebrew; it has no Chinese, Japanese,
   Korean, Arabic or emoji.
@@ -136,6 +136,14 @@ and Arabic from its own fonts and a player's may not. Look at the pictures too (
   style down the fallback chain: a serif CJK fallback under a sans Latin font looks broken even to non-readers.
 - Letter spacing (`FontVariation.SpacingGlyph`) stays at 0 or above for running text, and text boxes in fixed art keep
   room above and below the letters for stacked accents. `Label.Uppercase` widens text: pseudo-test with it on.
+
+### Punctuation and spaces
+
+The English source text and table use real marks (`’ “ ” – — … × −`, one ellipsis character, a non-breaking space inside
+`Level 3` and `10 HP`, one space after punctuation, at most one `!`), per `typography` (`punctuation.md`). The rules are
+English ones: each language has its own quotation marks, dashes and spacing, so a translator sets those and nobody
+converts them by rule. Keep the marks in the table, not concatenated in code, check that every font in the chain has them
+(`missing glyphs`), and keep translated strings in the same case as the source (`Label.Uppercase` capitalises on display).
 
 ## 7. Right-to-left
 

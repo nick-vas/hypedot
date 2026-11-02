@@ -54,6 +54,9 @@ Condition: `node` (path from the scene root, `.` for the root, or absolute `/roo
 2. Assert on state, not pixels. Headless has no renderer and pixel checks are brittle.
 3. Prefer `wait_until` over a long `wait`: it is faster and does not break when timings change.
 4. Keep each flow to one behaviour. Name the file for it (`pause_menu_resumes.flow.json`).
+5. A text assertion compares exact characters. A label with `’`, `…`, `–`, a non-breaking space or `×` fails `equals` against
+   the straight, three-dot or ordinary-space version, so write the expected string with the same characters (JSON takes
+   `\u2019` and `\u00A0`), or use `contains` on the part that matters (`typography`, `punctuation.md`).
 
 ## Rotation
 
