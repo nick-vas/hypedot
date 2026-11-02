@@ -124,6 +124,9 @@ one, move it to `doing` in the plan (the sync moves the item), and start it with
 - **Too much in progress:** respect the work-in-progress limit; suggest finishing a task instead of starting one.
 - **Over the timebox:** when the phase is past its timebox, propose which `could` and `should` features to cut, starting
   with those that serve none of the game's main kinds of fun. Never propose cutting tests.
+- **Pixel art:** a next task that draws or animates sprites starts by checking `.mcp.json` for an `aseprite` server. If it is
+  missing and the user draws in Aseprite, offer `init -McpAseprite "<the folder or Aseprite.exe>"` (`godot-editor-bridge`);
+  ask for the path, never guess it.
 - **Is it fun:** a new feature names the kind of fun it serves before it is built; if it serves none of the game's main
   kinds, say so when you ask whether to add it (`game-design`).
 

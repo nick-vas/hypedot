@@ -25,7 +25,16 @@ Default server: **satelliteoflove/godot-mcp** (MIT; Godot 4.5+, Node 20+). Tools
 game time), `godot_exec` (run GDScript in the running game) and `godot_project`. Then install and enable its addon (the command `init`
 prints). Alternative: **hi-godot/godot-ai** (MIT; Godot 4.7+, `uv`), configured from its dock with **Configure**, so `init` only prints a note.
 
-Neither server builds C#: godot-ai treats C# as text-only and reports no compiler errors. After editing a `.cs` file through the bridge,
+Pixel art: **aseprite-mcp** (MIT, 123 tools to draw, animate and export in Aseprite; needs `uv`) is registered the same way, alone or with the above:
+
+```powershell
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 init -McpAseprite "C:\Program Files\Aseprite"     # the folder, Aseprite.exe or the aseprite binary
+```
+It adds an `aseprite` entry to `.mcp.json` with the path (adds only), and stops with `aseprite-not-found` when there is no Aseprite there. It
+runs Aseprite in batch mode, so no editor or window is open; `view_sprite` shows the agent its own picture, and each pass is checked with it
+(`asset-pipeline`, `docs/mcp.md`).
+
+Neither editor server builds C#: godot-ai treats C# as text-only and reports no compiler errors. After editing a `.cs` file through the bridge,
 run `build -Json` and read `diagnostics[]`.
 
 Optional companion for GDScript projects: `init -Mcp godot-mcp -McpDiagnostics` also registers `minimal-godot-mcp` (Node 22+, no addon). Its
