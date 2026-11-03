@@ -132,7 +132,7 @@ Each needs the owner: paste the text, save the pages and attach them, or allow t
 
 - **Google Fonts Knowledge** (anatomy, classification, readability, variable fonts). A script-rendered app whose script was
   blocked in transit (`ERR_BLOCKED_BY_ORB`); the likeliest fix is allowing `www.gstatic.com` for the session, or saving the
-  articles as text.
+  articles as text. The owner agreed on 2026-11-03 to allow `www.gstatic.com` in the environment's network settings; read the articles in the first session that has it.
 - **Letterform Archive toolkit, AIGA, TypeThursday.** Bot checks (403, 403, 429): paste or attach the pages you want read.
 - **thinkingwithtype.com, historyoftype.com.** No connection (closed after ten seconds; 502). They may be down or denied; the
   list called the second "free" and that is unconfirmed.
@@ -169,22 +169,8 @@ Each needs the owner: paste the text, save the pages and attach them, or allow t
 
 ### After 0.1.0
 
-- **A complete mid run of the staged programme** (postponed by the owner on 2026-10-26 until after the 0.1.0 release).
-  Run 44 graded 294 of 540 sessions: the plan's usage limit stopped every job after 65 minutes, and a git race ended
-  four parts early (fixed in nick-vas/hyperdot#134). Before the rerun: the `unchanged` rule must let a fix task add tests
-  to a kept test file, and the arena soak race must be fixed; then run it in fewer parallel jobs or over several usage
-  windows, priced at $67.71 (`benchmark/PLAN.md`, "The first mid run, stopped halfway"). The game-making label waits
-  for it; 0.1.0 ships the tool programme's.
-- **Run Opus in the staged programme.** The two configurations are in `benchmark/game-programme.json` (`opus` and
-  `opus` with the plugin, marked `measuredApart`, so they share a tier ceiling among themselves and the standard four stay
-  under the mid tier's $120) and `benchmark/cost-model.json` prices them, as estimates (2.2 times Sonnet's task and
-  milestone means, the ratio from the judge's calibration; no Opus task has run). Dry run, mid tier
-  (`pwsh benchmark/Invoke-TokenBenchmark.ps1 -SpecPath benchmark/game-programme.json -Tier mid -Model opus -DryRun`, with
-  `-Plugin` for the second): $43.20 for Opus and $61.65 for Opus with the plugin, $104.85 together, against ceilings of
-  $49.44 and $70.56. Dispatch the token benchmark workflow with programme `staged`, tier `mid` and model `opus` (its model
-  input takes any alias), once for each plugin setting, or `configurations: all` for all six. It costs money: confirm
-  first, and put the measured means into `cost-model.json` afterwards. The owner chose on 2026-10-26 to measure Opus in a
-  run of its own, after the first complete mid run of the four.
+- **A complete mid run of the staged programme: done (2026-10-27 to 2026-11-03).** All six configurations ran, 122 to 135 of 135 sessions each; the results, the costs, the sessions lost and what they taught are in `benchmark/PLAN.md` ("The complete mid tier"), and `cost-model.json` and the mid ceiling (now $180) follow them. What remains: the **game-making label rating** (the label tool reads the tool and game programmes; it does not rate the staged one yet, which is stage 7 of the plan), and the sessions that did not run (Opus 7, Opus with the plugin 13, Haiku 5, Haiku with the plugin 3). `continue_run` now takes several run ids, so they can be finished without repeating the rest.
+- **Run Opus in the staged programme: done** (see above). Opus costs about 3 times Sonnet per task and 4 times per milestone, not the 2.2 times estimated.
 - **Why CI and the owner's PC disagree** (question round note 11). No quick way to see why a run passes on one and
   fails on the other; the idea is to compare the two runs' `-Json` results side by side. Postponed by the owner on
   2026-10-26 until after the 0.1.0 release.
@@ -194,9 +180,7 @@ Each needs the owner: paste the text, save the pages and attach them, or allow t
   recording (an agent changes code, a test fails, the agent fixes it, the tests pass, the export succeeds), and a write-up
   "things AI agents break in Godot" built from real failures Hyperdot caught. Social proof (users, runs) waits for real
   numbers; none is invented.
-- **Measurements postponed** (decision of the owner, 2026-10-27): all measurements except the running Haiku
-  configuration wait until the owner says so: Haiku with the plugin, Sonnet, Sonnet with the plugin, Opus, and the
-  game-making label rating.
+- **Measurements postponed: done**, except the game-making label rating (above).
 - **A cache keyed by a hash of the inputs, for CI** (same origin; `telemetry` exists now, and reports the hit rates of this cache once it exists, from the same history). A job's inputs (the project
   files it reads, the Godot version, the kit version) are hashed, and a job whose hash has already passed is skipped,
   where `Select-Jobs.ps1` now selects by the paths a change touches. Open question first: a result may be reused
@@ -207,7 +191,7 @@ Each needs the owner: paste the text, save the pages and attach them, or allow t
 
 ### From the label and the adversarial review (2026-10-23)
 
-- **Sonnet over its word limits.** All but one of Sonnet's failed benchmark answers are 10 to 30% over the limit their
+- **Sonnet over its word limits.** (Measured on 2026-11-03 over all six configurations: Opus is over on 72% of tasks, by 29 words on average; the plugin cuts the share to 40% for Opus and to 4% for Sonnet. The owner kept the limit as it is.) All but one of Sonnet's failed benchmark answers are 10 to 30% over the limit their
   prompt states, which puts it in class F where Haiku is D. Whether a line in `AGENTS.md` ("keep to a stated length")
   changes that is a question for the next benchmark run, not a reason to change the grader.
 - **The plugin on Hyperdot's own code.** Loading it adds tokens to every session and helps none of the tool

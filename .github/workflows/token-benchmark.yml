@@ -16,8 +16,9 @@
 # run that is over it.
 #
 # `continue_run` finishes an earlier run that did not complete (a usage limit, the job time limit, a cut-off): the id of
-# an earlier Token benchmark run of this repository (empty for none). Every job downloads that run's
-# `token-benchmark-<programme>-*` artifacts (kept 30 days) and runs only the sessions that have no result there that ran
+# an earlier Token benchmark run of this repository, or several ids separated by commas (the runs of a chain: a
+# continuation reads only the runs it is given, so name every run whose sessions are done; empty for none). Every job
+# downloads those runs' `token-benchmark-<programme>-*` artifacts (kept 30 days) and runs only the sessions that have no result there that ran
 # (`-SkipDone`: tokens spent and not an infrastructure failure; the others run again), then shards what is left, so the plan
 # job's estimate and the parts count only the remainder. Give the same selection (programme, tier, model, plugin, repeat,
 # profiles, tasks) as the run being continued. The results are a new run of their own, never a change to the old one; the
@@ -94,7 +95,7 @@ on:
         description: Split each configuration into this many parallel jobs (the mid tier outlasts one job's 330 minutes)
         default: '1'
       continue_run:
-        description: Id of an earlier Token benchmark run of this repository to continue, running only the sessions it did not run (empty for none)
+        description: Id of an earlier Token benchmark run of this repository to continue, running only the sessions it did not run; several ids separated by commas when the chain has more than one run (empty for none)
         default: ''
       max_minutes:
         description: Stop starting new sessions after this many minutes, and upload what was measured (the job limit is 330; at most 45 minutes less, empty or 0 for that)
@@ -121,12 +122,15 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-          RUN_ID: ${{ inputs.continue_run }}
+          RUN_IDS: ${{ inputs.continue_run }}
           PROGRAMME: ${{ inputs.programme }}
         run: |
-          [[ "$RUN_ID" =~ ^[0-9]+$ ]] || { echo "continue_run must be a run id (digits), got '$RUN_ID'"; exit 1; }
-          gh run download "$RUN_ID" -R "$GITHUB_REPOSITORY" -p "token-benchmark-$PROGRAMME-*" -D continued \
-            || { echo "The results of run $RUN_ID are gone or it has none for this programme (a run keeps them for 30 days)"; exit 1; }      # One job per configuration; with `all`, a dry run of each first: one over its share of the tier's ceiling fails
+          [[ "$RUN_IDS" =~ ^[0-9]+(,[0-9]+)*$ ]] || { echo "continue_run must be a run id (digits), or several separated by commas, got '$RUN_IDS'"; exit 1; }
+          for RUN_ID in ${RUN_IDS//,/ }; do
+            gh run download "$RUN_ID" -R "$GITHUB_REPOSITORY" -p "token-benchmark-$PROGRAMME-*" -D "continued/$RUN_ID" \
+              || { echo "The results of run $RUN_ID are gone or it has none for this programme (a run keeps them for 30 days)"; exit 1; }
+          done
+      # One job per configuration; with `all`, a dry run of each first: one over its share of the tier's ceiling fails
       # here, before any session runs.
       - name: Configurations and their estimated cost
         id: matrix
@@ -162,7 +166,7 @@ jobs:
             if ($env:CONTINUE_RUN) {
               # This configuration's own artifacts only (the benchmark job downloads the same ones).
               $name = "token-benchmark-$($env:PROGRAMME)-$($c.model)$(if ($c.plugin) { '-plugin' })"
-              $own = @(Get-ChildItem continued -Directory | Where-Object { $_.Name -eq $name -or $_.Name -like "$name-part-*" } | ForEach-Object FullName)
+              $own = @(Get-ChildItem continued -Directory | ForEach-Object { Get-ChildItem $_.FullName -Directory } | Where-Object { $_.Name -eq $name -or $_.Name -like "$name-part-*" } | ForEach-Object FullName)
               if ($own.Count) { $params.SkipDone = $own -join ',' }
             }
             $out = ./benchmark/Invoke-TokenBenchmark.ps1 @params
@@ -203,17 +207,19 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-          RUN_ID: ${{ inputs.continue_run }}
+          RUN_IDS: ${{ inputs.continue_run }}
           PROGRAMME: ${{ inputs.programme }}
           MODEL: ${{ matrix.model }}
           PLUGIN: ${{ matrix.plugin }}
         run: |
-          [[ "$RUN_ID" =~ ^[0-9]+$ ]] || { echo "continue_run must be a run id (digits), got '$RUN_ID'"; exit 1; }
+          [[ "$RUN_IDS" =~ ^[0-9]+(,[0-9]+)*$ ]] || { echo "continue_run must be a run id (digits), or several separated by commas, got '$RUN_IDS'"; exit 1; }
           # Only this job's own configuration: its artifact is token-benchmark-<programme>-<model>[-plugin] or, in parts, the same
           # with -part-<k>. The patterns are exact, so `sonnet` takes neither `sonnet-plugin` nor another model.
           NAME="token-benchmark-$PROGRAMME-$MODEL"; [ "$PLUGIN" = true ] && NAME="$NAME-plugin"
-          gh run download "$RUN_ID" -R "$GITHUB_REPOSITORY" -p "$NAME" -p "$NAME-part-*" -D continued \
-            || { echo "The results of run $RUN_ID are gone or it has none for $NAME (a run keeps them for 30 days)"; exit 1; }
+          for RUN_ID in ${RUN_IDS//,/ }; do
+            gh run download "$RUN_ID" -R "$GITHUB_REPOSITORY" -p "$NAME" -p "$NAME-part-*" -D "continued/$RUN_ID" \
+              || { echo "The results of run $RUN_ID are gone or it has none for $NAME (a run keeps them for 30 days)"; exit 1; }
+          done
       # The game programmes' sessions run Godot, and their grader runs the game's tests; setup sets GODOT_BIN for both.
       # The staged programme has C# games too, so it takes the .NET build of Godot, which runs GDScript as well.
       - name: Godot for the game programmes
@@ -257,7 +263,7 @@ jobs:
           }
           if ($env:REPEAT) { $params.Repeat = [int]$env:REPEAT }
           if ($env:SHARD) { $params.Shard = $env:SHARD }
-          if ($env:CONTINUE_RUN) { $params.SkipDone = (Get-ChildItem continued -Directory | ForEach-Object FullName) -join ',' }
+          if ($env:CONTINUE_RUN) { $params.SkipDone = (Get-ChildItem continued -Directory | ForEach-Object { Get-ChildItem $_.FullName -Directory } | ForEach-Object FullName) -join ',' }
           # Never later than 45 minutes (a milestone session) before the job's limit, whatever max_minutes says, and always set.
           $minutes = [int](./.github/scripts/Get-BenchmarkMinutes.ps1 -MaxMinutes $env:MAX_MINUTES -JobMinutes ([int]$env:JOB_MINUTES))
           $params.MaxMinutes = $minutes
