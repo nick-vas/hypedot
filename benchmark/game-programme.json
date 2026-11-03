@@ -220,7 +220,7 @@
         "milestones": []
       },
       "mid": {
-        "maxCostUsd": 120,
+        "maxCostUsd": 180,
         "repeat": 3,
         "tasksPerStage": 2,
         "cells": [

@@ -168,6 +168,45 @@ run 44). What to change before the other three configurations: more shards (four
 the limit, and a way to run only the sessions a part did not reach. The owner postponed the other measurements on
 2026-10-27 (Haiku with the plugin, Sonnet, Sonnet with the plugin, Opus, and the game-making label rating).
 
+## The complete mid tier
+
+All six configurations of the mid tier ran between 2026-10-27 and 2026-11-03 (staged programme, 135 sessions a
+configuration, isolated sessions, one configuration per usage window). A session counts when its spend is known and it
+was not an infrastructure failure; where several runs continued one another, a session counts once (by profile, task and
+repetition), because a continuation reads only the run it continues and so repeats what an earlier run of the chain
+did. Costs are Claude Code's own figure for the sessions counted.
+
+| Configuration | Sessions run | Passed | Cost | Mean task | Mean milestone | Median session |
+|---|---:|---:|---:|---:|---:|---:|
+| Haiku | 130 | 92 (71%) | $10.30 | $0.023 | $0.584 | 153 s |
+| Haiku with the plugin | 132 | 117 (89%) | $11.85 | $0.027 | $0.616 | 227 s |
+| Sonnet | 135 | 81 (60%) | $21.52 | $0.115 | $0.511 | 69 s |
+| Sonnet with the plugin | 135 | 120 (89%) | $29.85 | $0.169 | $0.640 | 123 s |
+| Opus | 128 | 33 (26%) | $64.16 | $0.341 | $2.053 | 116 s |
+| Opus with the plugin | 122 | 66 (54%) | $80.91 | $0.464 | $2.493 | 160 s |
+
+Runs: Haiku 45 and 46; Haiku with the plugin 47 and 51; Sonnet 48; Sonnet with the plugin 52; Opus 53, 54 and 55;
+Opus with the plugin 58 and 59. `cost-model.json` now uses these means, rounded up.
+
+- **The plugin raises the pass rate in every model**, by 18 points for Haiku, 29 for Sonnet and 28 for Opus, for a mean
+  task cost 17% (Haiku), 47% (Sonnet) and 36% (Opus) higher. The plugin's answers are shorter and more often within the
+  word limit, which is most of the difference (next point).
+- **Most failures are the answer-length limit, not the work.** Of the 84 task sessions Opus failed, 80 failed only
+  because the written answer ran over its word limit (220 for a task, 300 for a milestone); Opus with the plugin 42 of
+  44, Sonnet 30 of 44, Haiku 19 of 29. Opus writes the longest answers, so it fails the most. The pass rate therefore
+  measures obeying the length limit as much as solving the task; a rating of efficiency per solved task should be read
+  with that in mind, and the limit is a candidate for the plan's grading (section 3).
+- **Milestones are hard for every configuration except Sonnet with the plugin** (12 of 15 passed; the others 0 to 6 of
+  12 to 15, most failing the same word limit). Opus milestones cost $2.05 and $2.49 on average, four times Sonnet's.
+- **Opus costs about three times Sonnet per task** ($0.34 against $0.115), not the 2.2 times the cost model assumed.
+- **What was lost.** Opus (without the plugin) is 7 sessions short of 135, all third repetitions of seven tasks, and
+  Opus with the plugin 13 short, Haiku 5 and Haiku with the plugin 3: a continuation cannot take a task filter (run 56
+  failed on that guard), so finishing them meant repeating about 80 sessions. Run 55 repeated 29 sessions of run 53, so the
+  Opus total spend was $77.58 for $64.16 of counted sessions. Two runner shutdown signals (exit 143, runs 57 at 01:29 and
+  03:23 UTC) cancelled a job before its upload and lost both of its shards' results, about $40 of Opus sessions; jobs of
+  an hour (six shards, `max_minutes` 45) were not hit.
+- **Not done:** the label tool does not yet rate the staged programme (stage 7), so these are measurements, not a class.
+
 ## Decisions
 
 | Question | Decision |
@@ -289,8 +328,8 @@ as not run, so such a run is incomplete and sets no class.
 | Tier | Runs (4 configurations: Sonnet and Haiku, with and without the plugin; Opus and Opus with the plugin are two more, marked `measuredApart` in `game-programme.json` and priced as a run of their own) | Ceiling | Use |
 |---|---|---:|---|
 | min | all 10 genres, 1 stage each, 2 tasks, 1 repeat, no milestones (every language and stage pair at least once) | $10 | a quick check after changing a skill (estimate $5.70) |
-| mid | all 10 genres, 1 stage in each language, 2 tasks a stage, 3 repeats, 5 milestones | $120 | **the standard programme: the only run that sets a class** (estimate $100.20) |
-| max | any selection up to every genre, stage, language, task and milestone, 5 repeats | above $120, shown before it starts | a release, wider coverage, tighter tolerances |
+| mid | all 10 genres, 1 stage in each language, 2 tasks a stage, 3 repeats, 5 milestones | $180 | **the standard programme: the only run that sets a class** (estimate $167.40 at the measured costs) |
+| max | any selection up to every genre, stage, language, task and milestone, 5 repeats | above $180, shown before it starts | a release, wider coverage, tighter tolerances |
 
 The tiers were widened on 2026-10-26 from one genre (min) and three (mid, then $50 with an estimate of $60) to all ten,
 once every genre was written in both languages. The estimates come from `cost-model.json`, whose milestone figures are
