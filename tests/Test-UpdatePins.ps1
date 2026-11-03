@@ -106,7 +106,7 @@ try {
         try { $r = ($out -join "`n") | ConvertFrom-Json } catch { $failures += "dependency case $($case.Needs) printed no JSON: $($out -join ' ')"; continue }
         $proposed = @($r.updates | Where-Object { $_.name -eq 'gdUnit4.test.adapter' }).Count -eq 1
         $noted = @($r.notes | Where-Object { $_ -match 'gdUnit4\.test\.adapter 3\.2\.0 needs gdUnit4\.api 5\.1\.0-rc6 or newer' }).Count -eq 1
-        if ($proposed -ne $case.Proposed) { $failures += "an adapter needing gdUnit4.api $($case.Needs): proposed should be $($case.Proposed): $($r.updates | ConvertTo-Json -Compress)" }
+        if ($proposed -ne $case.Proposed) { $failures += "an adapter needing gdUnit4.api $($case.Needs): proposed should be $($case.Proposed): $($r.updates | ConvertTo-Json -Compress -Depth 5)" }
         if ($case.Proposed -and $noted) { $failures += "an adapter whose dependency is met (api $($case.Needs)) should carry no waiting note" }
         if (-not $case.Proposed -and -not $noted) { $failures += "an adapter that waits should say for what: $(@($r.notes) -join ' | ')" }
     }
