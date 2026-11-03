@@ -138,8 +138,18 @@ function Get-InstructionPathProblems([string]$Text, [string]$Where, [string]$Pro
                 $p = $m.Groups['p'].Value
                 if ($p -match '^(res|user|https?)://|^[@$~-]|[*?<>{}|]' -or $p -notmatch '/') { continue }
                 if ($p -notmatch '\.[A-Za-z0-9]{1,8}$' -and -not $p.EndsWith('/')) { continue }
-                # An absolute path is looked up as it is written, not under the repository.
-                $roots = if ($p -match '^([A-Za-z]:[\\/]|/)') { @('') } else { @($FileDir, $RepoRoot, $ProjectDir) }
+                # An absolute path is looked up as it is written, not under the repository, and only when it lies in the game
+                # or its repository: one that points elsewhere (the kit on the author's machine, a tool folder) belongs to a
+                # machine and cannot be checked from another, so it is not reported as missing (issue 214).
+                $absolute = $p -match '^([A-Za-z]:[\\/]|/)'
+                if ($absolute) {
+                    $slashed = $p -replace '\\', '/'
+                    $inside = @(@($ProjectDir, $RepoRoot) | Where-Object { $_ } | Where-Object {
+                        $base = ([System.IO.Path]::GetFullPath("$_") -replace '\\', '/').TrimEnd('/')
+                        $slashed.StartsWith("$base/", [System.StringComparison]::OrdinalIgnoreCase) })
+                    if ($inside.Count -eq 0) { continue }
+                }
+                $roots = if ($absolute) { @('') } else { @($FileDir, $RepoRoot, $ProjectDir) }
                 @{ text = $p; roots = $roots; path = $p }
             }
         )

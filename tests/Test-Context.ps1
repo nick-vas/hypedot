@@ -21,6 +21,11 @@ Set-Content -LiteralPath $realFile 'x'
 $text = "Run ``$($realFile -replace '\\', '/')`` first.`nDo not commit ``.godot/``, ``bin/``, ``obj/``, ``test-results/``.`nSee ``docs/nothing.md`` for more.`nThe per-machine ``.claude/settings.local.json`` is never in a clone.`nThe ``build/`` and ``obj/`` folders appear after a run.`n"
 $pathProblems = @(Get-InstructionPathProblems $text 'AGENTS.md' $gameDir $gameDir $gameDir)
 Assert-True ($pathProblems.Count -eq 1 -and $pathProblems[0] -match 'docs/nothing\.md') "only the missing relative file is reported: $($pathProblems -join ' | ')"
+# An absolute path outside the game and its repository (the kit on the author's machine) belongs to that machine and is not
+# reported as missing from another; one inside the game still is (issue 214).
+$outside = "Run (``C:/Users/someone/hyperdot/ci/godot/hyperdot.ps1``) or ``/home/someone/kit/ci/godot/hyperdot.ps1`` for it.`nAnd ``$($gameDir -replace '\\', '/')/gone.gd`` is ours.`n"
+$outsideProblems = @(Get-InstructionPathProblems $outside 'AGENTS.md' $gameDir $gameDir $gameDir)
+Assert-True ($outsideProblems.Count -eq 1 -and $outsideProblems[0] -match 'gone\.gd') "absolute paths elsewhere are skipped, a missing one in the game is reported: $($outsideProblems -join ' | ')"
 Remove-Item -LiteralPath $gameDir -Recurse -Force
 
 # The kit holds itself to the rule: every hyperdot.ps1 call in the template, the skills and the docs binds.
