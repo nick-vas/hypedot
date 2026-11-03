@@ -38,3 +38,4 @@ pwsh {{SUITE}} bench -Json -Quiet -GameArgs '--stress' -BudgetMs 16.7
   decision in `docs/decisions/` is accepted before code is written. The `architecture` runner warns when code drifts.
 - Game-specific lessons are in `docs/lessons.md`; read it before changing a system it mentions.
 - When the kit gets in the way (a wrong flag, a confusing error, a missing check), append one line to `docs/kit-notes.md`.
+- End each reply with `Certainty: NN%` and a clause saying what it rests on: what was run or read, and what was not checked.
