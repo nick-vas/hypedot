@@ -56,6 +56,25 @@ function Test-JuiceLog([string[]]$Lines, $Config, [int]$Frames) {
     return $cases
 }
 
+# What the run itself adds to the rule cases: a failure, or a warning. A Godot that crashed (exit 128 and up, or a negative
+# Windows code) after every rule had been judged is a crash in its shutdown (observed: exit 134, `FATAL: Condition
+# "csharp_lang && !csharp_lang->script_bindings.is_empty()"` in the mono teardown, followed by hundreds of "Leaked unsafe
+# reference" lines), nothing the change under test did: a warning with the FATAL line. A crash with a rule not judged, or an
+# engine error before the crash, still fails, and so does any other nonzero exit.
+function Get-JuiceRunVerdict([int]$Code, [string[]]$Lines, [object[]]$Cases) {
+    $fatal = [array]::FindIndex($Lines, [Predicate[string]]{ param($l) $l -match 'FATAL:' })
+    $before = if ($fatal -ge 0) { @($Lines[0..([Math]::Max(0, $fatal - 1))]) } else { @($Lines) }
+    $errors = @(Select-GodotErrors $before)
+    $crashed = $Code -ge 128 -or $Code -lt 0
+    $judgedAll = @($Cases | Where-Object { $_.Failure }).Count -eq 0
+    if ($Code -eq 0) { return [pscustomobject]@{ Failure = ($errors -join "`n"); Warning = '' } }
+    if ($crashed -and $judgedAll -and $errors.Count -eq 0) {
+        $line = if ($fatal -ge 0) { $Lines[$fatal].Trim() } else { 'no FATAL line in the log' }
+        return [pscustomobject]@{ Failure = ''; Warning = "Godot crashed at shutdown (exit $Code) after every rule was judged: $line" }
+    }
+    return [pscustomobject]@{ Failure = "Godot exited with $Code"; Warning = '' }
+}
+
 function Invoke-JuiceRunner($Info, [string]$ResultsDir, [string[]]$GameArgs) {
     $config = Get-JuiceConfig $Info.ProjectDir
     if (-not $config) { Stop-GodotCi "juice runner: no juice.json in $($Info.ProjectDir)" 'invalid-arguments' }
@@ -67,8 +86,9 @@ function Invoke-JuiceRunner($Info, [string]$ResultsDir, [string[]]$GameArgs) {
     $code = Invoke-Logged $env:GODOT_BIN ($engine + $(if ($gameArgs) { @('--') + $gameArgs })) $log
     Stop-LogGroup
     $cases = @(Test-JuiceLog @(Get-Content -LiteralPath $log) $config $frames)
-    $errors = @(Get-GodotLogErrors $log)
-    $runFailure = if ($code -ne 0) { "Godot exited with $code" } elseif ($errors) { $errors -join "`n" } else { '' }
+    $verdict = Get-JuiceRunVerdict $code @(Get-Content -LiteralPath $log) $cases
+    $runFailure = $verdict.Failure
+    if ($verdict.Warning) { Write-CiLog "WARN: $($verdict.Warning)" }
     $cases = @(@{ Name = 'run'; Failure = $runFailure }) + $cases
     Write-JUnitCases (Join-Path $ResultsDir 'juice.junit.xml') 'juice' $cases
     return ($runFailure ? 1 : 0)

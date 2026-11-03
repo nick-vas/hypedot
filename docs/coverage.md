@@ -10,7 +10,7 @@ gives the percentages and the floors CI holds them to.
 | Part | Items | Covered |
 |---|---|---|
 | [Commands](#commands) | 19 | 19 |
-| [Error codes](#error-codes) | 61 | 59 |
+| [Error codes](#error-codes) | 62 | 60 |
 | [Library files](#library-files) | 37 | 37 |
 | [Tools](#tools) | 22 | 22 |
 | [Skills](#skills) | 53 | 53 |
@@ -90,6 +90,7 @@ The codes in [`docs/json.md`](json.md#error-codes), and the tests that raise the
 | `web-run-failed` | `Test-Web.ps1` |
 | `no-browser` | `Test-ErrorCodes.ps1` |
 | `shot-changed` | `Test-ShotChanged.ps1` |
+| `shot-size` | `Test-ShotChanged.ps1` |
 | `shot-text` | self-test.yml measure: shot -Locale -Pseudo finds cut-off |
 | `shot-off-palette` | `Test-Palette.ps1` |
 | `no-palette` | `Test-Palette.ps1` |
@@ -131,10 +132,10 @@ The codes in [`docs/json.md`](json.md#error-codes), and the tests that raise the
 | `Doctor.ps1` | 13/16 | `Test-Addons.ps1`, `Test-Steam.ps1`, `Test-SelectJobs.ps1`, `Test-DoctorFixture.ps1`, `Test-AssetManifest.ps1`, `Test-Audio.ps1`, `Test-Context.ps1`, `Test-ErrorCodes.ps1` and 5 more |
 | `Help.ps1` | 5/10 | `Test-Help.ps1`, `Test-ErrorCodes.ps1` |
 | `Init.ps1` | 10/12 | `Test-KitPaths.ps1`, `Test-UpdatePins.ps1`, `Test-ErrorCodes.ps1`, `Test-OldState.ps1`, `Test-Plan.ps1` |
-| `Juice.ps1` | 1/3 | `Test-JuiceLog.ps1`, `Test-AssetManifest.ps1`, `Test-ErrorKeys.ps1`, `Test-Flaky.ps1`, `Test-Handoffs.ps1`, `Test-Plan.ps1` |
+| `Juice.ps1` | 1/4 | `Test-JuiceLog.ps1`, `Test-AssetManifest.ps1`, `Test-ErrorKeys.ps1`, `Test-Flaky.ps1`, `Test-Handoffs.ps1`, `Test-Plan.ps1` |
 | `Layout.ps1` | 3/3 | `Test-Deck.ps1`, `Test-Layout.ps1` |
 | `Localization.ps1` | 19/22 | `Test-Localization.ps1`, `Test-Data.ps1`, `Test-Detect.ps1`, `Test-Addons.ps1`, `Test-AssetManifest.ps1`, `Test-Audio.ps1`, `Test-BenchHotspots.ps1`, `Test-BenchSweep.ps1` and 28 more |
-| `Measure.ps1` | 11/11 | `Test-GpuValidation.ps1`, `Test-SelectJobs.ps1`, `Test-BenchSweep.ps1`, `Test-Deck.ps1`, `Test-ErrorCodes.ps1`, `Test-BenchHotspots.ps1`, `Test-Capture.ps1`, `Test-ColorVision.ps1` and 36 more |
+| `Measure.ps1` | 11/12 | `Test-GpuValidation.ps1`, `Test-SelectJobs.ps1`, `Test-BenchSweep.ps1`, `Test-Deck.ps1`, `Test-ErrorCodes.ps1`, `Test-BenchHotspots.ps1`, `Test-Capture.ps1`, `Test-ColorVision.ps1` and 36 more |
 | `Palette.ps1` | 3/3 | `Test-Palette.ps1`, `Test-Capture.ps1`, `Test-ColorVision.ps1`, `Test-Deck.ps1`, `Test-ErrorCodes.ps1`, `Test-GpuValidation.ps1`, `Test-ShotChanged.ps1` |
 | `Placement.ps1` | 2/2 | `Test-Placement.ps1` |
 | `Plan.ps1` | 31/32 | `Test-Plan.ps1`, `Test-ProjectSync.ps1`, `Test-ErrorCodes.ps1`, `Test-AssetManifest.ps1`, `Test-ErrorKeys.ps1`, `Test-Flaky.ps1`, `Test-Handoffs.ps1` |
