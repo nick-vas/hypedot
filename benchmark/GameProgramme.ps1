@@ -195,7 +195,7 @@ function Invoke-GameSuite([string]$Dir, [string[]]$Runners, [string]$ResultsDir 
         if ($runner.ok) { continue }
         $named = @(if ($runner.Contains('failures')) { $runner.failures })
         foreach ($f in $named) { $failed.Add("$($f.name)") }
-        if ($named.Count -eq 0) { $failed.Add("$($runner.runner) failed") }
+        if ($named.Count -eq 0) { $failed.Add("$($runner.runner) failed$(if ($runner.Contains('reason') -and $runner.reason) { ": $($runner.reason)" })") }
     }
     if ($failed.Count -eq 0) { $failed.Add($(if ($doc.Contains('error') -and $doc.error) { "$($doc.error.code): $($doc.error.message)" } else { 'failed' })) }
     return [pscustomobject]@{ Ok = $false; Failed = $failed.ToArray() }
