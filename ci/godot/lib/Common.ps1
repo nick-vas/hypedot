@@ -147,6 +147,8 @@ function Add-RunHistory([bool]$Ok, [string]$Code) {
     # Where and with what errors: status groups runs by error key (Get-RecurringErrors).
     try {
         $entry['commit'] = Get-HeadCommit $script:HistoryProject
+        # The tree of the working folder: the Stop hook compares it with the tree in front of it, not file times.
+        if ($script:HistoryCommand -eq 'test') { $entry['tree'] = Get-WorkingTreeId $script:HistoryProject }
         $entry['errorKeys'] = @(Get-RunErrorKeys @(Read-RunLogLines) @($script:RunErrorKeys))
     } catch {
         Write-RunLog "[hyperdot] Could not read the run's error keys: $_"

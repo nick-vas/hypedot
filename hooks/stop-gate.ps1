@@ -123,6 +123,19 @@ try {
     }
     $lastRun = @($tests | Select-Object -Last 1)
 
+    # A tree that passed a full run is tested code, whatever the file times say: a checkout, a pull or a merge that brings
+    # back a tested tree changes times and not the code. The history stamps each test run with its working tree.
+    $testedTrees = @($tests | Where-Object { $_.ok -and $_.PSObject.Properties['tree'] -and $_.tree } | Select-Object -Last 30 |
+        Where-Object { Test-FullRun $_ $projectDir } | ForEach-Object { "$($_.tree)" })
+    if ($testedTrees.Count -gt 0) {
+        $treeLib = Join-Path $PSScriptRoot '../ci/godot/lib/WorkingTree.ps1'
+        if (Test-Path -LiteralPath $treeLib) {
+            . $treeLib
+            $current = Get-WorkingTreeId $projectDir
+            if ($current -and $current -in $testedTrees) { Exit-Allow }
+        }
+    }
+
     # What changed: files git reports as modified, new or deleted, plus those committed since the last passing run (its
     # history line records the commit), or, outside git, every source file.
     $codePattern = '\.(cs|gd|tscn|scn|tres|res|gdshader|gdshaderinc|csproj|sln|cfg|godot|json|csv|po)$'

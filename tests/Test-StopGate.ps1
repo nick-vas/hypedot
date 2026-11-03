@@ -11,6 +11,7 @@ $hook = Join-Path $root 'hooks/stop-gate.ps1'
 $example = Join-Path $root 'examples/gdscript'
 $temp = Join-Path ([System.IO.Path]::GetTempPath()) "stop-gate-$PID"
 $failures = @()
+. (Join-Path $root 'ci/godot/lib/WorkingTree.ps1')
 $env:HYPERDOT_STOP_GATE = $null
 
 # A committed copy of the example; -NoTests leaves out its GUT tests and flows, so it has no test runner of its own.
@@ -31,13 +32,14 @@ function Get-Commit([string]$Game) { return "$(@(& git -C $Game rev-parse --shor
 
 # One passing test line as the kit writes it; -NoScope is a run that reached no runner (`-Runners none`).
 function Add-TestRun([string]$Game, [datetime]$Time, [string[]]$Runners = @('architecture', 'flows', 'gut', 'smoke', 'validate'),
-    [string]$Filter = '', [switch]$NoScope, [bool]$Ok = $true) {
+    [string]$Filter = '', [switch]$NoScope, [bool]$Ok = $true, [string]$Tree = '') {
     $line = [ordered]@{ time = $Time.ToUniversalTime().ToString('o'); command = 'test'; ok = $Ok; code = $(if ($Ok) { '' } else { 'tests-failed' }); seconds = 1 }
     if (-not $NoScope) {
         $line.failedRunners = @(); $line.scope = [ordered]@{ runners = @($Runners | Sort-Object); filter = $Filter }
         $line.failures = @(); $line.failuresTruncated = $false
     }
     $line.commit = Get-Commit $Game
+    if ($Tree) { $line.tree = $Tree }
     $line.errorKeys = @()
     $file = Join-Path $Game '.godot/hyperdot-history.jsonl'
     New-Item -ItemType Directory -Force (Split-Path $file) | Out-Null
@@ -178,6 +180,23 @@ try {
     Assert-Gate 'monorepo root package.json' (Invoke-Gate (Join-Path $mono 'game')) 'allow'
     Set-Script (Join-Path $mono 'game/score.gd') "extends RefCounted`n"
     Assert-Gate 'game file in a monorepo' (Invoke-Gate (Join-Path $mono 'game')) 'block' 'Game files changed'
+
+    # A tree that passed a full run is tested code, whatever the file times say: the run is stamped with the working tree, and a
+    # checkout, pull or merge that brings the same tree back (new file times, same content) is let through; other content is not.
+    $game = New-Game 'tree'
+    Set-Script (Join-Path $game 'score.gd') "extends RefCounted`n"
+    $tested = Get-WorkingTreeId $game
+    if (-not $tested) { $failures += 'Get-WorkingTreeId returned nothing in a git repository' }
+    Add-TestRun $game $earlier -Tree $tested
+    Assert-Gate 'a tree that passed, with newer file times' (Invoke-Gate $game) 'allow'
+    (Get-Item -LiteralPath (Join-Path $game 'score.gd')).LastWriteTimeUtc = (Get-Date).ToUniversalTime().AddMinutes(10)
+    Assert-Gate 'the same tree, file touched later' (Invoke-Gate $game) 'allow'
+    Set-Script (Join-Path $game 'score.gd') "extends RefCounted`nvar changed = 1`n"
+    Assert-Gate 'other content than the tested tree' (Invoke-Gate $game) 'block' 'Game files changed'
+    $before = $env:GIT_INDEX_FILE
+    $index = (Get-Item -LiteralPath (Join-Path $game '.git/index')).LastWriteTimeUtc
+    $null = Get-WorkingTreeId $game
+    if ((Get-Item -LiteralPath (Join-Path $game '.git/index')).LastWriteTimeUtc -ne $index -or $env:GIT_INDEX_FILE -ne $before) { $failures += 'Get-WorkingTreeId must leave the repository index and the environment as they were' }
 
     # No hook input at all: the working folder is the current one, and the gate still applies.
     $game = New-Game 'empty-input'

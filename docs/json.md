@@ -230,7 +230,7 @@ runners also records `scope` (`runners`, sorted, and `filter`, `""` without `-Fi
 `<runner>|<test name>`, in ordinal order) and `failuresTruncated`; the next run of the same scope compares itself with them.
 It also records `retry`, `flaky` and `quarantined` (ids as in `failures`, up to 200 each) and `runnerSeconds` (each runner's seconds, retries included; `telemetry` reads it). Lines only gain keys; a reader
 ignores the ones it does not know.
-Every line also has `commit` (the short hash checked out, without uncommitted changes; `null` outside git) and `errorKeys`:
+Every `test` line also has `tree`, the git tree of the working folder at the end of the run (tracked and untracked files, what `.gitignore` leaves in; `null` outside git): the plugin's Stop hook lets a session finish when the tree in front of it is one that passed a full run, whatever its file times say. Every line also has `commit` (the short hash checked out, without uncommitted changes; `null` outside git) and `errorKeys`:
 the distinct error keys of the run's log, passing or failing, in the order they first appear, up to 20. A key is one
 Godot error line (`ERROR:`, `SCRIPT ERROR:`, ... as for `engine-errors`, known noise left out) with what changes between
 runs taken out: numbers become `N` (line numbers, sizes, object ids, `@Node2D@23`), hex addresses `X`; `res://` and

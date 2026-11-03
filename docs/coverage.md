@@ -11,7 +11,7 @@ gives the percentages and the floors CI holds them to.
 |---|---|---|
 | [Commands](#commands) | 19 | 19 |
 | [Error codes](#error-codes) | 62 | 60 |
-| [Library files](#library-files) | 37 | 37 |
+| [Library files](#library-files) | 38 | 38 |
 | [Tools](#tools) | 22 | 22 |
 | [Skills](#skills) | 53 | 53 |
 | [Subagents](#subagents) | 2 | 2 |
@@ -155,6 +155,7 @@ The codes in [`docs/json.md`](json.md#error-codes), and the tests that raise the
 | `Version.ps1` | 3/6 | `Test-GameVersion.ps1`, `Test-KitPaths.ps1` |
 | `Web.ps1` | 3/3 | `Test-InputHash.ps1`, `Test-SelectJobs.ps1`, `Test-ErrorCodes.ps1` |
 | `Workflow.ps1` | 0/3 | `Test-Workflow.ps1` |
+| `WorkingTree.ps1` | 0/1 | `Test-StopGate.ps1` |
 
 ## Tools
 
