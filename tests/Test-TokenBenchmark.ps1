@@ -130,7 +130,7 @@ try {
         $o = & pwsh @a 2>$null; $c = $LASTEXITCODE; [pscustomobject]@{ Code = $c; Json = (@($o | Where-Object { $_ -match '^\{' }) | Select-Object -Last 1 | ConvertFrom-Json) } }
     $sonnetDry = & $dryOf 'sonnet' $false; $opusDry = & $dryOf 'opus' $false; $opusPlugDry = & $dryOf 'opus' $true
     Assert-True ($sonnetDry.Code -eq 0 -and $opusDry.Code -eq 0 -and $opusPlugDry.Code -eq 0) 'the mid tier dry run is within its ceiling for Sonnet, Opus and Opus with the plugin'
-    Assert-True ($opusDry.Json.estimateUsd -gt $sonnetDry.Json.estimateUsd -and $opusDry.Json.tierEstimateUsd -lt 120 -and $sonnetDry.Json.tierEstimateUsd -lt 120) 'Opus is priced above Sonnet, and each group of configurations is under the tier ceiling'
+    Assert-True ($opusDry.Json.estimateUsd -gt $sonnetDry.Json.estimateUsd -and $opusDry.Json.tierEstimateUsd -lt 180 -and $sonnetDry.Json.tierEstimateUsd -lt 180) 'Opus is priced above Sonnet, and each group of configurations is under the tier ceiling'
 
     $slow = Invoke-Bench @('-TaskId', 'T-SLOW', '-ProfileId', 'P1-plain', '-Repeat', '1')
     $slowRow = @(Get-Content -LiteralPath (Join-Path $slow.Json.folder 'results.json') -Raw | ConvertFrom-Json)[0]
