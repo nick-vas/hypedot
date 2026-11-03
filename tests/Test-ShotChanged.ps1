@@ -31,6 +31,20 @@ $loose = Invoke-KitShot @('-Output', (Join-Path $temp 'loose'), '-Baseline', $be
 if (-not $loose.ok) { $failures += "100% allowed should pass: $($loose.error.code)" }
 $alone = Invoke-KitShot @('-Output', (Join-Path $temp 'alone'), '-MaxChangedPercent', '1')
 if ($alone.ok -or $alone.error.code -ne 'invalid-arguments') { $failures += "-MaxChangedPercent without -Baseline should be refused: $($alone.error.code)" }
+# A project that renders at its base size (stretch aspect keep): a wider window gives the base size, and shot says so; -RequireResolution fails.
+$keep = Join-Path $temp 'keep'
+Copy-Item -LiteralPath $project -Destination $keep -Recurse
+$display = @('', '[display]', '', 'window/size/viewport_width=640', 'window/size/viewport_height=360', 'window/stretch/mode="canvas_items"', 'window/stretch/aspect="keep"') -join "`n"
+Add-Content -LiteralPath (Join-Path $keep 'project.godot') -Value $display
+$keepErr = Join-Path $temp 'keep.stderr.txt'
+$keepJson = & pwsh -NoProfile -NonInteractive -File $kit shot -Project $keep -Scene res://swatches.tscn -Resolution 960x360 -Frames 5 -Output (Join-Path $temp 'keep-out') -Json 2>$keepErr | Out-String | ConvertFrom-Json
+$keepShot = @($keepJson.shots)[0]
+if (-not $keepJson.ok -or $keepShot.requested -ne '960x360' -or $keepShot.sizeMatches -or $keepShot.width -ne 640) { $failures += "a window wider than the base aspect with stretch keep should report a 640 picture that does not match 960x360: $($keepJson | ConvertTo-Json -Depth 5 -Compress)" }
+if ((Get-Content -LiteralPath $keepErr -Raw) -notmatch 'stretch is mode canvas_items, aspect keep') { $failures += 'the size warning should name the stretch setting' }
+$strict = & pwsh -NoProfile -NonInteractive -File $kit shot -Project $keep -Scene res://swatches.tscn -Resolution 960x360 -Frames 5 -Output (Join-Path $temp 'keep-strict') -RequireResolution -Json 2>$null | Out-String | ConvertFrom-Json
+if ($strict.ok -or $strict.error.code -ne 'shot-size') { $failures += "-RequireResolution should fail with shot-size: $($strict | ConvertTo-Json -Depth 5 -Compress)" }
+$match = & pwsh -NoProfile -NonInteractive -File $kit shot -Project $keep -Scene res://swatches.tscn -Resolution 640x360 -Frames 5 -Output (Join-Path $temp 'keep-match') -RequireResolution -Json 2>$null | Out-String | ConvertFrom-Json
+if (-not $match.ok -or -not @($match.shots)[0].sizeMatches) { $failures += "a picture of the size asked for passes -RequireResolution: $($match | ConvertTo-Json -Depth 5 -Compress)" }
 # Two scenes with the same name in different folders get a picture each, not one written over the other.
 foreach ($folder in 'a', 'b') {
     New-Item -ItemType Directory -Force (Join-Path $project $folder) | Out-Null

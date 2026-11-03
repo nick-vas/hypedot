@@ -73,7 +73,13 @@ try {
     New-Item -ItemType Directory -Force $game | Out-Null
     Set-Content -LiteralPath (Join-Path $game 'project.godot') -Value 'config_version=5'
     $d = (Invoke-Help @('help', '-Json', '-Project', $game)).Text | ConvertFrom-Json
-    Assert-True ((Test-Path -LiteralPath (Join-Path $game 'docs/kit-help.md')) -and $d.path -eq (Join-Path $game 'docs/kit-help.md')) 'with -Project the page goes to docs/kit-help.md of the game'
+    $godotHelp = Join-Path $game '.godot/kit-help.md'
+    Assert-True ((Test-Path -LiteralPath $godotHelp) -and $d.path -eq $godotHelp -and -not (Test-Path -LiteralPath (Join-Path $game 'docs/kit-help.md'))) 'with -Project the page goes to .godot/kit-help.md of the game, and nothing is written to docs/'
+    # A tracked docs/kit-help.md (the copy init puts there) is left alone by a later help.
+    New-Item -ItemType Directory -Force (Join-Path $game 'docs') | Out-Null
+    Set-Content -LiteralPath (Join-Path $game 'docs/kit-help.md') -Value 'a copy committed by init'
+    $null = Invoke-Help @('help', '-Json', '-Project', $game)
+    Assert-True ((Get-Content -LiteralPath (Join-Path $game 'docs/kit-help.md') -Raw).Trim() -eq 'a copy committed by init') 'help leaves a docs/kit-help.md of the game as it is'
 
     $d = (Invoke-Help @('help', 'shot', '-Json')).Text | ConvertFrom-Json
     Assert-True ($d.ok -and $d.entry.kind -eq 'command' -and $d.entry.page -match 'hyperdot\.ps1 shot ') "help shot returns the command's page: $($d.entry | ConvertTo-Json -Depth 10 -Compress)"
