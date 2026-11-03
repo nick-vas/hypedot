@@ -13,6 +13,10 @@
     renamed the FastMCP class the server imports (docs/mcp.md); a newer major is reported in notes. The weekly canary
     workflow tries each update (aseprite-mcp's by starting the server through uvx) and proposes the ones that pass.
     -LatestFile replaces the lookups with a JSON file (name -> version), for tests and offline runs.
+    A package whose newest stable release depends on a newer version of another pinned package than that package's newest
+    stable (gdUnit4.test.adapter 3.2.0 wants a pre-release gdUnit4.api) is not proposed: it cannot restore with the pins as
+    they are, and a note says what it waits for. -DependencyFile gives those dependencies as JSON (package -> version ->
+    dependency -> lowest version) in place of NuGet's .nuspec files.
 
 .EXAMPLE
     pwsh ci/godot/tools/Update-Versions.ps1 -Json                    # what is out of date
@@ -26,6 +30,7 @@ param(
     # Update names to apply (godot, gut, or a NuGet package id). Default: every update found.
     [string[]]$Only,
     [string]$LatestFile,
+    [string]$DependencyFile,
     [switch]$Json
 )
 $ErrorActionPreference = 'Stop'
@@ -87,6 +92,29 @@ function Get-NuGetLatest([string]$Id) {
     $versions = @((Get-Json "https://api.nuget.org/v3-flatcontainer/$($Id.ToLowerInvariant())/index.json").versions | Where-Object { $_ -notmatch '-' })
     return @($versions | Sort-Object { [version]($_ -replace '^(\d+(\.\d+){0,3}).*$', '$1') })[-1]
 }
+# What a NuGet package's version needs of other packages: dependency id -> the lowest version it names. From the .nuspec
+# on NuGet, or from -DependencyFile (package -> version -> dependency -> lowest version) for tests and offline runs.
+function Get-NuGetNeeds([string]$Id, [string]$Version) {
+    $needs = @{}
+    if ($DependencyFile) {
+        $table = Get-Content -LiteralPath $DependencyFile -Raw | ConvertFrom-Json -AsHashtable
+        if ($table.Contains($Id) -and $table[$Id].Contains($Version)) { foreach ($dep in $table[$Id][$Version].Keys) { $needs[$dep] = [string]$table[$Id][$Version][$dep] } }
+        return $needs
+    }
+    $lower = $Id.ToLowerInvariant()
+    $spec = (Invoke-WebRequest -Uri "https://api.nuget.org/v3-flatcontainer/$lower/$Version/$lower.nuspec" -Headers @{ 'User-Agent' = 'hyperdot-update-versions' }).Content
+    foreach ($m in [regex]::Matches($spec, '<dependency\s+id="(?<id>[^"]+)"\s+version="(?<v>[^"]+)"')) {
+        $first = [regex]::Match($m.Groups['v'].Value, '\d+(\.\d+){1,3}(-[0-9A-Za-z.]+)?')
+        if ($first.Success) { $needs[$m.Groups['id'].Value] = $first.Value }
+    }
+    return $needs
+}
+# Whether version $Want (a lower bound, maybe a pre-release) is above $Have: the numbers decide; 5.1.0-rc6 is above 5.0.0 and
+# is met by 5.1.0, and a pre-release of the number we have does not count as above it.
+function Test-VersionAbove([string]$Want, [string]$Have) {
+    $number = { param($v) [version]([regex]::Match($v, '^\d+(\.\d+){0,3}').Value -replace '^(\d+)$', '$1.0') }
+    return (& $number $Want) -gt (& $number $Have)
+}
 function Test-GodotBuild([string]$Version) {
     $tag = ($Version -replace '^(\d+\.\d+)\.0$', '$1') + '-stable'
     try { [void](Get-Json "https://api.github.com/repos/godotengine/godot-builds/releases/tags/$tag"); return $true }
@@ -138,6 +166,22 @@ if ($LatestFile) {
     }
     $gut = try { Get-GutFor (& $minor $latest['godot']) } catch { $notes.Add("Could not read GUT releases: $($_.Exception.Message)"); $null }
     $latest['gut'] = if ($gut) { $gut } else { $current['gut'] }
+}
+
+# A package whose newest stable release needs a newer version of a pinned package than that one's newest stable cannot be
+# restored with the pins as they are (NU1605): it waits, and a note says for what.
+foreach ($name in @($current.Keys | Where-Object { $_ -notin $nonNuGet -and (-not $LatestFile -or $DependencyFile) })) {
+    if (-not $latest[$name] -or $latest[$name] -eq $current[$name]) { continue }
+    $needs = try { Get-NuGetNeeds $name $latest[$name] } catch { $notes.Add("Could not read what $name $($latest[$name]) depends on: $($_.Exception.Message)"); @{} }
+    foreach ($dep in @($needs.Keys | Sort-Object)) {
+        $pinned = @($current.Keys | Where-Object { $_ -ieq $dep })
+        if (-not $pinned -or -not $latest[$pinned[0]]) { continue }
+        if (Test-VersionAbove $needs[$dep] $latest[$pinned[0]]) {
+            $notes.Add("$name $($latest[$name]) needs $dep $($needs[$dep]) or newer, and the newest stable $dep is $($latest[$pinned[0]]): not proposed until a stable $dep has it")
+            $latest[$name] = $current[$name]
+            break
+        }
+    }
 }
 
 $updates = @(foreach ($name in $current.Keys) {

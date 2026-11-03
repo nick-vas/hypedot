@@ -93,6 +93,24 @@ try {
         }
     }
 
+    # A package whose newest stable release needs a newer version of another pinned package than that one's newest stable
+    # (gdUnit4.test.adapter 3.2.0 wants gdUnit4.api 5.1.0-rc6, a pre-release) is not proposed, and a note says what it waits for;
+    # one whose dependency is met is proposed as before.
+    $deps = New-RepoCopy 'deps'
+    $latestDeps = Join-Path $temp 'latest-deps.json'
+    '{"gdUnit4.test.adapter":"3.2.0"}' | Set-Content -LiteralPath $latestDeps
+    foreach ($case in @(@{ Needs = '5.1.0-rc6'; Proposed = $false }, @{ Needs = '5.0.0'; Proposed = $true }, @{ Needs = '5.0.0-rc9'; Proposed = $true })) {
+        $depFile = Join-Path $temp "deps-$($case.Needs).json"
+        @{ 'gdUnit4.test.adapter' = @{ '3.2.0' = @{ 'gdUnit4.api' = $case.Needs } } } | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $depFile
+        $out = & pwsh -NoProfile -NonInteractive -File $tool -Root $deps -LatestFile $latestDeps -DependencyFile $depFile -Json 2>&1
+        try { $r = ($out -join "`n") | ConvertFrom-Json } catch { $failures += "dependency case $($case.Needs) printed no JSON: $($out -join ' ')"; continue }
+        $proposed = @($r.updates | Where-Object { $_.name -eq 'gdUnit4.test.adapter' }).Count -eq 1
+        $noted = @($r.notes | Where-Object { $_ -match 'gdUnit4\.test\.adapter 3\.2\.0 needs gdUnit4\.api 5\.1\.0-rc6 or newer' }).Count -eq 1
+        if ($proposed -ne $case.Proposed) { $failures += "an adapter needing gdUnit4.api $($case.Needs): proposed should be $($case.Proposed): $($r.updates | ConvertTo-Json -Compress -Depth 5)" }
+        if ($case.Proposed -and $noted) { $failures += "an adapter whose dependency is met (api $($case.Needs)) should carry no waiting note" }
+        if (-not $case.Proposed -and -not $noted) { $failures += "an adapter that waits should say for what: $(@($r.notes) -join ' | ')" }
+    }
+
     # A new Godot minor with its GUT release, and a test-package update, together: every pin moves, the GUT mapping in
     # Setup.ps1 gains the new minor, and the skills still validate afterwards.
     $minor = New-RepoCopy 'minor'
