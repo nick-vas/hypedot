@@ -37,6 +37,10 @@ $good = Invoke-Flows 'flows/good/'
 Assert-True ($good.Ok) "the rotation flows pass: $(@($good.Cases | Where-Object Message | ForEach-Object { "$($_.Name): $($_.Message)" }) -join ' | ')"
 Assert-True ($good.Cases.Count -eq 3) "three good flows ran: $($good.Cases.Count)"
 
+# Flows share one process: what one leaves (a paused tree, a time scale, a node in the root window) is cleaned before the next.
+$leak = Invoke-Flows 'flows/leak/'
+Assert-True ($leak.Ok -and $leak.Cases.Count -eq 2) "a flow that leaves the tree paused, the time scale at 3 and a node in the root does not reach the next flow: $(@($leak.Cases | Where-Object Message | ForEach-Object { "$($_.Name): $($_.Message)" }) -join ' | ')"
+
 $broken = Invoke-Flows 'flows/broken/'
 Assert-True (-not $broken.Ok) 'the broken flows fail the run'
 $size = 'resize needs \[width, height\] in pixels, whole numbers from 1 to 16384, got '

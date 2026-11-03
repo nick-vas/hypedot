@@ -14,6 +14,8 @@ var _failure := ""
 var _scene: Node
 # Actions pressed by a hold step and not yet released, in the order they were held.
 var _held: Array[String] = []
+# The children of the root window when the first flow starts (the autoloads): whatever a flow adds there later is its own.
+var _baseline: Array[Node] = []
 
 
 func _initialize() -> void:
@@ -23,6 +25,7 @@ func _initialize() -> void:
 		filter = user_args[0]
 	# The engine sizes the root window during its first frame, which would undo the first flow's start size.
 	await process_frame
+	_baseline = root.get_children()
 	var files: Array[String] = []
 	_collect("res://", files)
 	files.sort()
@@ -94,6 +97,29 @@ func _run_flow(path: String) -> void:
 	_scene.queue_free()
 	await process_frame
 	_scene = null
+	await _reset_state(path)
+
+
+# Flows share one process, so what one leaves behind would reach the next: a paused tree (the next flow's input never
+# arrives), a time scale, nodes the game added to the root window (a toast, a popup layer). After each flow the tree is
+# unpaused, the time scale is back to 1 and the nodes added to the root are freed, and a note says what was found. An
+# autoload keeps its own state: a flow that changes one puts it back itself.
+func _reset_state(path: String) -> void:
+	var found: Array[String] = []
+	if paused:
+		found.append("left the tree paused (unpaused)")
+		paused = false
+	if not is_equal_approx(Engine.time_scale, 1.0):
+		found.append("left Engine.time_scale at %s (set back to 1)" % Engine.time_scale)
+		Engine.time_scale = 1.0
+	for child in root.get_children():
+		if child in _baseline:
+			continue
+		found.append("left %s in the root window (freed)" % child.name)
+		child.queue_free()
+	if not found.is_empty():
+		print("@@flow note %s %s" % [path, "; ".join(found)])
+		await process_frame
 
 
 # Returns "" when the step passed, else the reason it failed.

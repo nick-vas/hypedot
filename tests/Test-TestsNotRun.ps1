@@ -27,6 +27,13 @@ function New-Trx([string]$Name, [string[]]$Outcomes, [string]$StdOut) {
 function Read-One([string]$Path) { $totals = New-TestTotals; Read-Trx $Path $totals; return $totals }
 
 $found = "Discover:  TestSuite Example.Tests.ControlsTest with 8 TestCases found.`nDiscover tests done, 2 TestSuites and total 3 Tests found."
+# A build that cannot write its dll because a game still has it open is named, with the process when MSBuild says.
+$lockLines = @('Build FAILED.', '  C:\g\Game.csproj : error MSB3027: Could not copy "obj\Debug\net8.0\Game.dll" to "bin\Debug\net8.0\Game.dll". Exceeded retry count of 10. Failed. The file is locked by: "Game (4321)" [C:\g\Game.csproj]')
+$locked = Get-LockedFileProblem $lockLines
+if (-not $locked -or $locked -notmatch 'Game\.dll: it is locked by Game \(4321\)') { $failures += "MSB3027 should name the dll and the process: $locked" }
+$osLine = 'error MSB3021: Unable to copy file "obj/Game.dll" to "bin/Game.dll". The process cannot access the file ''/g/bin/Game.dll'' because it is being used by another process.'
+if ((Get-LockedFileProblem @($osLine)) -notmatch "bin/Game\.dll: '/g/bin/Game\.dll' is being used by another process") { $failures += "MSB3021 should name the file: $(Get-LockedFileProblem @($osLine))" }
+if ($null -ne (Get-LockedFileProblem @('error CS1002: ; expected', 'Build FAILED.'))) { $failures += 'an ordinary compile error is not a locked file' }
 try {
     # The rebuild failed: three found, none ran, the adapter exited 0. One failure that names the cause.
     $t = Read-One (New-Trx 'failed-build.trx' @() "$found`nCleaning up runner file at x/GdUnit4TestRunnerScene.cs due to compilation failure`nTest execution stopped.")

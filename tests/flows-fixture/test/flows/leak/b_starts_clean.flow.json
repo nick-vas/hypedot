@@ -1,0 +1,7 @@
+{
+  "scene": "res://rotation.tscn",
+  "steps": [
+    { "assert": { "node": ".", "prop": "paused_at_start", "equals": false } },
+    { "assert": { "node": ".", "prop": "strays_at_start", "equals": 0 } }
+  ]
+}

@@ -49,3 +49,22 @@ func _process(_delta: float) -> void:
 func _layout() -> String:
 	var size := get_viewport_rect().size
 	return "portrait" if size.y > size.x else "landscape"
+
+
+# State a flow can leave behind for the next one (test/flows/leak): a paused tree and a node in the root window, both seen
+# by the next scene when it starts.
+var paused_at_start := false
+var strays_at_start := 0
+
+
+func leak_state() -> void:
+	get_tree().paused = true
+	Engine.time_scale = 3.0
+	var stray := Label.new()
+	stray.name = "Stray"
+	get_tree().root.add_child(stray)
+
+
+func _enter_tree() -> void:
+	paused_at_start = get_tree().paused
+	strays_at_start = get_tree().root.get_children().filter(func(n: Node) -> bool: return n.name == "Stray").size()
