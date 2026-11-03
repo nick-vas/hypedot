@@ -115,7 +115,8 @@ function Write-TestSummary([string]$Runner, [string]$ResultsDir, [int]$ExitCode,
     $logLines = @(Get-ChildItem -LiteralPath $ResultsDir -File -Filter '*.log' | ForEach-Object { Get-Content -LiteralPath $_.FullName })
     # Why a runner with no failing test still fails: it found no test, or exited non-zero without recording a failure.
     $reason = if ($totals.Total -eq 0) {
-        "reported no test results (exit code $ExitCode)" + $(if ($Runner -in 'dotnet', 'gdunit4') { '; gdUnit4Net finds no test in a static class' })
+        $locked = if ($Runner -in 'dotnet', 'gdunit4') { Get-LockedFileProblem $logLines }
+        "reported no test results (exit code $ExitCode)" + $(if ($locked) { "; $locked" } elseif ($Runner -in 'dotnet', 'gdunit4') { '; gdUnit4Net finds no test in a static class' })
     } elseif ($ExitCode -ne 0 -and $totals.Failed -eq 0) { "exited with code $ExitCode and recorded no failing test" } else { $null }
     return [pscustomobject]@{
         Reason = $reason

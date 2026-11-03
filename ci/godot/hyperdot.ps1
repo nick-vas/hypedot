@@ -350,7 +350,8 @@ function Invoke-Build {
         Stop-LogGroup
         if ($code -ne 0) {
             Set-JsonField diagnostics @(Get-DotnetDiagnostics $buildLog)
-            Stop-GodotCi "dotnet build exited with $code" 'build-failed'
+            $locked = Get-LockedFileProblem @(Get-Content -LiteralPath $buildLog)
+            Stop-GodotCi "dotnet build exited with $code$(if ($locked) { ": $locked" })" 'build-failed'
         }
     } else {
         Write-CiLog 'No .sln/.csproj; skipping dotnet build (GDScript-only project)'

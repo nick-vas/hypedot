@@ -1,0 +1,7 @@
+{
+  "scene": "res://rotation.tscn",
+  "steps": [
+    { "call": ".", "method": "leak_state" },
+    { "assert": { "node": ".", "prop": "paused_at_start", "equals": false } }
+  ]
+}

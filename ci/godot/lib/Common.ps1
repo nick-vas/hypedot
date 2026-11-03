@@ -743,3 +743,19 @@ function Assert-KitArguments($ParamBlock, [hashtable]$Bound) {
         Stop-GodotCi "-$($flags[$name]) $value is not one of: $($sets[$name] -join ', ')$suggestion" 'invalid-arguments'
     }
 }
+
+# A build that cannot write its output because a process still holds it (a game a bot run left open keeps its dll):
+# MSBuild reports MSB3027 or MSB3021, or the operating system's own words, and `dotnet test` then fails with no test
+# result at all. The text for the first such line, naming the file and, when MSBuild says, the process holding it; $null
+# when the lines hold none.
+function Get-LockedFileProblem([string[]]$Lines) {
+    foreach ($line in $Lines) {
+        $m = [regex]::Match($line, 'MSB3027: Could not copy "(?<src>[^"]+)" to "(?<dst>[^"]+)"\..*?locked by: "(?<who>[^"]+)"')
+        if ($m.Success) { return "the build could not write $($m.Groups['dst'].Value): it is locked by $($m.Groups['who'].Value); close that process (a game a bot run left open?) and run again" }
+        $m = [regex]::Match($line, "(?:MSB3021|MSB3027)[^']*(?:Unable to copy file|Could not copy) ""(?<src>[^""]+)"" to ""(?<dst>[^""]+)""[^']*'(?<file>[^']+)' because it is being used by another process")
+        if ($m.Success) { return "the build could not write $($m.Groups['dst'].Value): '$($m.Groups['file'].Value)' is being used by another process; close it (a game a bot run left open?) and run again" }
+        $m = [regex]::Match($line, "The process cannot access the file '(?<file>[^']+)' because it is being used by another process")
+        if ($m.Success) { return "the build could not write '$($m.Groups['file'].Value)': it is being used by another process; close it (a game a bot run left open?) and run again" }
+    }
+    return $null
+}

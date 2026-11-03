@@ -74,7 +74,8 @@ function Invoke-DotnetTest([string]$Target, [string]$ResultsDir, [string]$Filter
         if ($Filter) { $arguments += '--filter', $Filter }
         if ($Coverage) { $arguments += '--collect', 'XPlat Code Coverage' }
         Start-LogGroup "dotnet test $Target"
-        $code = Invoke-Logged dotnet $arguments
+        # The output is kept in the results folder: a build that cannot write its dll leaves no test result, and the report names the locked file from it.
+        $code = Invoke-Logged dotnet $arguments (Join-Path $ResultsDir "$Prefix.log")
         Stop-LogGroup
         return $code
     } finally {
