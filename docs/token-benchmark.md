@@ -208,7 +208,7 @@ job downloads the `token-benchmark-<programme>-*` artifacts of that run (kept 30
 permission), passes them as `-SkipDone`, and the plan job's estimate counts only the remainder, so the shards split it
 evenly. Give the same selection as the run being continued: the runner refuses a `-SkipDone` result of another tier, model, plugin,
 repeat or narrowing, naming what differs. The old run is not changed; the new one is a continuation
-(see `-SkipDone`) and its summary lists the runs it continues (`meta.continues`). A continuation can itself be continued, naming it in turn.
+(see `-SkipDone`) and its summary lists the runs it continues (`meta.continues`). A continuation can itself be continued, naming it in turn. `continue_run` also takes several ids separated by commas (`41465548838,41495679885,41526565441`): a continuation reads only the runs it is given, so after a chain of runs name them all, or the sessions of the earlier ones run again (the Opus chain of the mid tier repeated 29 sessions that way, and 80 would have repeated to finish the last 7).
 `Get-HyperdotLabel.ps1` reads a run and its continuations as one unit, a session run again counting once as its last row.
 
 Sizing: at about seven minutes a session, a job reaches 285 minutes after about 40 sessions. A remainder of 40 sessions
