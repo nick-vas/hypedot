@@ -27,7 +27,7 @@
 .EXAMPLE
     ./ci/godot/hyperdot.ps1 playtest -Sessions playtests/sessions   # per-level counts and medians, heat maps of stalls and deaths
 .EXAMPLE
-    ./ci/godot/hyperdot.ps1 help shot     # with a name, its page; without, a Markdown reference of everything (docs/kit-help.md of the game)
+    ./ci/godot/hyperdot.ps1 help shot     # with a name, its page; without, a Markdown reference of everything (.godot/kit-help.md of the game)
     ./ci/godot/hyperdot.ps1 deck -Scene res://levels/Boss.tscn   # text size, layout, a screenshot and a 30 fps budget at 1280x800
 #>
 [CmdletBinding()]
@@ -42,7 +42,7 @@ param(
     # credits: CREDITS.md, credits.json and THIRD-PARTY-NOTICES.txt from assets.json and the engine's notices; fails on missing credit details.
     # sfx: placeholder sound effects from a seed (bfxr's synth: coin, laser, explosion, powerup, hit, jump, blip), as WAV and .bfxr.
     # playtest: per-level counts, medians and heat maps (PNG) from a folder of playtest telemetry sessions; no Godot needed.
-    # help: a Markdown reference of every command, skill and subagent (docs/kit-help.md), or the page of one (help <name>); no project needed.
+    # help: a Markdown reference of every command, skill and subagent (.godot/kit-help.md of the game), or the page of one (help <name>); no project needed.
     # deck: the Steam Deck check at 1280x800: textsize, layout, shot and bench with a Deck budget, one verdict.
     # telemetry: one read-only view of the project's run history: per command the runs, pass rate and mean, median and p95 duration, and for test the slowest runners, failure hot spots and flaky tests; no Godot needed.
     # The sets of values (here and for -Retry, -Mcp, -Do and -Profile) are [ArgumentCompletions], which PowerShell does not
@@ -130,6 +130,8 @@ param(
     # that is cut off, off screen or missing glyphs. -Pseudo adds a pseudolocalized pass: accented, 40% longer, in [brackets].
     [string[]]$Locale,
     [switch]$Pseudo,
+    # shot: fail (shot-size) when a picture is not the size asked for with -Resolution (for example a project whose stretch aspect is keep renders at its base size); without it that is a warning.
+    [switch]$RequireResolution,
     # shot: also save each picture as people with colour blindness see it: protan, deutan, tritan (scene.<kind>.png).
     [string[]]$ColorVision,
     # shot: every picture is checked against the palette table in docs/STYLE.md when there is one (a warning only); fail
@@ -749,7 +751,7 @@ switch ($Command) {
     'shot' {
         Invoke-Setup; Invoke-Build
         Invoke-Shot -Info $info -Scene $Scene -Frames $Frames -Resolution $Resolution -GameArgs $GameArgs -Baseline $Baseline -MaxChangedPercent $MaxChangedPercent -Locale $Locale -Pseudo:$Pseudo -ColorVision $ColorVision `
-            -MaxOffPalettePercent $MaxOffPalettePercent -PaletteTolerance $PaletteTolerance -OutputDir $commandResultsDir -GpuValidation:$GpuValidation
+            -MaxOffPalettePercent $MaxOffPalettePercent -PaletteTolerance $PaletteTolerance -OutputDir $commandResultsDir -GpuValidation:$GpuValidation -RequireResolution:$RequireResolution
     }
     'deck' {
         Invoke-Setup; Invoke-Build

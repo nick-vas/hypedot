@@ -273,7 +273,8 @@ function Add-BenchCsvRow([string]$Path, $Result) {
 
 function Invoke-Shot {
     param($Info, [string[]]$Scene, [int]$Frames, [string]$Resolution, [string]$OutputDir, [string[]]$GameArgs, [string]$Baseline, [string[]]$Locale, [switch]$Pseudo,
-        [string[]]$ColorVision, [double]$MaxChangedPercent = -1, [double]$MaxOffPalettePercent = -1, [double]$PaletteTolerance = 3, [switch]$GpuValidation)
+        [string[]]$ColorVision, [double]$MaxChangedPercent = -1, [double]$MaxOffPalettePercent = -1, [double]$PaletteTolerance = 3, [switch]$GpuValidation, [switch]$RequireResolution)
+    if ($RequireResolution -and -not $Resolution) { Stop-GodotCi '-RequireResolution checks the pictures against -Resolution: give the size, e.g. -Resolution 2560x1080' 'invalid-arguments' }
     if ($MaxChangedPercent -ge 0 -and -not $Baseline) { Stop-GodotCi '-MaxChangedPercent compares with -Baseline: give the folder of the earlier screenshots' 'invalid-arguments' }
     if ($MaxChangedPercent -gt 100) { Stop-GodotCi "-MaxChangedPercent is a percentage of pixels (0 to 100), not $MaxChangedPercent" 'invalid-arguments' }
     if ($MaxOffPalettePercent -gt 100) { Stop-GodotCi "-MaxOffPalettePercent is a percentage of pixels (0 to 100), not $MaxOffPalettePercent" 'invalid-arguments' }
@@ -349,6 +350,15 @@ function Invoke-Shot {
             catch { $problems += "palette check of $($shot.file): $($_.Exception.GetBaseException().Message)" }
         }
     }
+    # A picture of another size than asked for: the engine renders at the project's base size when its stretch aspect is
+    # keep (or ignore), with bars around it, so a wide or 4:3 window shows the same pixels as 16:9. Say so, never silently.
+    if ($Resolution) {
+        $wanted = [regex]::Match($Resolution, '^(?<w>\d+)x(?<h>\d+)$')
+        foreach ($shot in $shots) {
+            $shot['requested'] = $Resolution
+            $shot['sizeMatches'] = ($shot.width -eq [int]$wanted.Groups['w'].Value -and $shot.height -eq [int]$wanted.Groups['h'].Value)
+        }
+    }
     Set-JsonField shots $shots
     foreach ($shot in $shots) {
         Write-CiLog "Saved $($shot.file) ($($shot.width)x$($shot.height))$(if ($shot.locale) { " in $($shot.locale)" })"
@@ -368,9 +378,18 @@ function Invoke-Shot {
             if ($p.offPalettePercent -gt 0 -and $MaxOffPalettePercent -lt 0) { Write-CiLog "  WARN: $($p.offPalettePercent)% of the picture is off the palette in docs/STYLE.md -> $($p.image)" }
         }
     }
+    $sizeOff = @($shots | Where-Object { $_.Contains('sizeMatches') -and -not $_.sizeMatches })
+    if ($sizeOff) {
+        $stretch = Get-StretchSetting $Info
+        $why = "the project's stretch is mode $($stretch.mode), aspect $($stretch.aspect)$(if ($stretch.baseSize) { ', base size ' + $stretch.baseSize })"
+        Write-CiLog "WARN: $($sizeOff.Count) picture(s) are not $Resolution (for example $(Split-Path $sizeOff[0].file -Leaf) is $($sizeOff[0].width)x$($sizeOff[0].height)): $why. With aspect keep the game renders at its base size with bars, so this layout is not shown at $Resolution; set Project Settings > Display > Window > Stretch > Aspect to expand (or use a window with the base aspect) to judge it"
+    }
     # The pictures are reported first; then GPU validation, whose errors fail the run before any picture check does.
     $validation = if ($GpuValidation) { Get-GpuValidation @(Get-Content -LiteralPath $log) } else { $null }
     if ($validation) { Set-JsonField gpuValidation $validation.Report; Assert-GpuValidation $validation.Report 'The screenshot run' }
+    if ($RequireResolution -and $sizeOff) {
+        Stop-GodotCi "-RequireResolution: $(@($sizeOff | ForEach-Object { "$(Split-Path $_.file -Leaf) is $($_.width)x$($_.height)" }) -join '; ') instead of $Resolution (see the warning above for the stretch setting)" 'shot-size'
+    }
     $missing = @(foreach ($shot in $shots) { foreach ($kind in $kinds) { if (-not $shot.Contains('colorVision') -or -not $shot.colorVision.Contains($kind)) { "$($shot.file) has no $kind picture" } } })
     $problems += $missing
     if ($problems.Count -gt 0 -or $shots.Count -eq 0) {
@@ -403,4 +422,19 @@ function Invoke-Shot {
     }
     # After reporting the pictures: a scene that printed errors while it ran still fails the run.
     Assert-GodotLogClean $log 'The screenshot run' -Expected $(if ($validation) { $validation.Lines } else { @() })
+}
+
+# The stretch settings of project.godot that decide whether a window of another aspect shows more of the game (expand) or
+# the same picture with bars (keep): mode, aspect and the base size.
+function Get-StretchSetting($Info) {
+    $mode = 'disabled'; $aspect = 'keep'; $width = $null; $height = $null
+    $file = Join-Path $Info.ProjectDir 'project.godot'
+    if (Test-Path -LiteralPath $file) {
+        $text = Get-Content -LiteralPath $file -Raw
+        $m = [regex]::Match($text, '(?m)^window/stretch/mode="(?<v>[^"]+)"'); if ($m.Success) { $mode = $m.Groups['v'].Value }
+        $m = [regex]::Match($text, '(?m)^window/stretch/aspect="(?<v>[^"]+)"'); if ($m.Success) { $aspect = $m.Groups['v'].Value }
+        $m = [regex]::Match($text, '(?m)^window/size/viewport_width=(?<v>\d+)'); if ($m.Success) { $width = $m.Groups['v'].Value }
+        $m = [regex]::Match($text, '(?m)^window/size/viewport_height=(?<v>\d+)'); if ($m.Success) { $height = $m.Groups['v'].Value }
+    }
+    return [ordered]@{ mode = $mode; aspect = $aspect; baseSize = $(if ($width -and $height) { "${width}x${height}" } else { $null }) }
 }

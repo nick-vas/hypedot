@@ -1,7 +1,7 @@
 # Help
 
 What `hyperdot.ps1 help` and the `/kit` skill show: a Markdown page with a table each for the commands, skills and
-subagents, the skills in groups (written to `docs/kit-help.md` of the game, which `init -Agents` and `init -Plugin` also put there), and a short
+subagents, the skills in groups (written to `.godot/kit-help.md` of the game, a folder no repository tracks, so `help` changes nothing the game commits; `init -Agents` and `init -Plugin` put a first copy in `docs/kit-help.md`), and a short
 page for one of them (`hyperdot.ps1 help shot`, `/kit shot`). This file is the only source of that text. Each entry is a `###`
 heading with the name, one line saying what it does, then its page. A skill's or subagent's page also gets the "when to
 use it" line of its own file. `tests/Test-Help.ps1` fails when a command, skill or subagent has no entry here, or an entry
@@ -91,6 +91,8 @@ Save real screenshots of scenes at a resolution, and compare them with earlier o
     hyperdot.ps1 shot -Json -Quiet -Scene res://ui/Menu.tscn -Resolution 1920x1080 [-Baseline <folder>] [-Locale fr,ja] [-ColorVision protan]
 
 Needs a display. Also checks text cut off in other languages, colour-blind views and the palette in docs/STYLE.md.
+
+A project whose stretch aspect is `keep` (the default) renders at its base size with bars, whatever the window: `-Resolution 2560x1080` then returns a 1920x1080 picture and `shot` says so (a warning, naming the stretch setting); set the aspect to `expand` to judge a wide or 4:3 layout, and add `-RequireResolution` to fail with `shot-size` when a picture is not the size asked for. Several game flags go in one comma-joined argument: `-GameArgs "--stage=x,--seed=1"`; separate tokens give `invalid-arguments`.
 
 ### status
 Everything computable about where the game is, in one read-only pass: GDD features, tagged tests, plan, runs, git.

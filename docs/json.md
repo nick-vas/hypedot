@@ -69,6 +69,7 @@ Branch on `error.code`; `message` can change.
 | `web-run-failed` | `export -Run`: a Web build did not start in a browser, or printed a page error, failed request, console error or Godot `ERROR`/`SCRIPT ERROR` | `webRuns[]` |
 | `no-browser` | `export -Run` of a Web preset: Node.js, the playwright package or the browser is missing | `webRuns[].errors` |
 | `shot-changed` | `shot -Baseline -MaxChangedPercent <n>`: a picture differs from its baseline by more than n% of pixels, or changed size | `shots[].compare` |
+| `shot-size` | `shot -Resolution <WxH> -RequireResolution`: a picture is not that size (the stretch aspect keep renders at the base size) | `shots[].requested`, `shots[].sizeMatches` |
 | `shot-text` | `shot -Locale`/`-Pseudo` found text that is cut off, off screen or missing glyphs | `shots[].text` |
 | `shot-off-palette` | `shot -MaxOffPalettePercent <n>`: more than n% of a picture is in colours off the palette in `docs/STYLE.md` | `shots[].palette` |
 | `no-palette` | `shot -MaxOffPalettePercent`: the project has no `docs/STYLE.md`, or its `## Palette` table has no `#RRGGBB` colours; checked before Godot starts | `palette.problem` |

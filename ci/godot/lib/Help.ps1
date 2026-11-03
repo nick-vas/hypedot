@@ -1,5 +1,5 @@
-# `help`: a Markdown reference of every command, skill and subagent (written to docs/kit-help.md of the game, which `init`
-# also puts there), or the page of one. The text lives in docs/help.md, which the /kit skill shows through this command
+# `help`: a Markdown reference of every command, skill and subagent (written to .godot/kit-help.md of the game, which no repository tracks, so a read-only command changes
+# nothing in the project; `init` puts a first copy in docs/kit-help.md), or the page of one. The text lives in docs/help.md, which the /kit skill shows through this command
 # too, so there is one source; a skill's or subagent's page adds the "when to use it" line of its own file. Needs no
 # project and no Godot.
 
@@ -145,12 +145,13 @@ function Write-HelpFile([string]$Path) {
     return $entries.Count
 }
 
-# Where `help` writes: docs/kit-help.md of the game it is given (-Project) or run in, else a file in the temp folder.
+# Where `help` writes: .godot/kit-help.md of the game it is given (-Project) or run in (.godot is ignored by every game, so
+# the working tree stays clean), else a file in the temp folder.
 function Get-HelpFilePath([string]$Project) {
     $base = if ($Project) { [System.IO.Path]::GetFullPath($Project, (Get-Location).ProviderPath) }
         elseif (Test-Path -LiteralPath (Join-Path (Get-Location).ProviderPath 'project.godot')) { (Get-Location).ProviderPath }
         else { $null }
-    if ($base) { return Join-Path $base 'docs/kit-help.md' }
+    if ($base) { return Join-Path $base '.godot/kit-help.md' }
     return Join-Path ([System.IO.Path]::GetTempPath()) 'hyperdot-kit-help.md'
 }
 
