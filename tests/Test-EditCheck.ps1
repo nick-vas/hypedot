@@ -72,6 +72,9 @@ try {
     Set-Content -LiteralPath (Join-Path $game 'broken_syntax.gd') -Value "extends Node`nfunc f(:`n"
     Set-Content -LiteralPath (Join-Path $game 'broken_name.gd') -Value "extends Node`nfunc f() -> int:`n`treturn undefined_thing`n"
     Set-Content -LiteralPath (Join-Path $game 'broken_ref.tscn') -Value "[gd_scene format=3]`n[ext_resource type=`"Script`" path=`"res://nope.gd`" id=`"1`"]`n[node name=`"X`" type=`"Node`"]`nscript = ExtResource(`"1`")`n"
+    # A scene whose script writes a file in _init: the hook loads the scene and must not run that code.
+    Set-Content -LiteralPath (Join-Path $game 'side_effect.gd') -Value "extends Node`nfunc _init() -> void:`n`tvar f := FileAccess.open(`"res://ran.txt`", FileAccess.WRITE)`n`tf.store_string(`"ran`")`n"
+    Set-Content -LiteralPath (Join-Path $game 'side_effect.tscn') -Value "[gd_scene format=3]`n[ext_resource type=`"Script`" path=`"res://side_effect.gd`" id=`"1`"]`n[node name=`"X`" type=`"Node`"]`nscript = ExtResource(`"1`")`n"
     New-Item -ItemType Directory -Force (Join-Path $game 'addons/some_addon') | Out-Null
     Set-Content -LiteralPath (Join-Path $game 'addons/some_addon/broken.gd') -Value "extends Node`nfunc f(:`n"
 
@@ -91,6 +94,9 @@ try {
     if ($found.Count -gt 0) {
         Assert-Note (Invoke-Hook (New-EditInput $game (Join-Path $game 'broken_syntax.gd')) @{ GODOT_BIN = $found[0].FullName }) 'GODOT_BIN' @('res://broken_syntax.gd')
     }
+
+    Assert-Silent (Invoke-Hook (New-EditInput $game (Join-Path $game 'side_effect.tscn')) $noGodot) 'a scene with an _init side effect'
+    if (Test-Path -LiteralPath (Join-Path $game 'ran.txt')) { $failures += 'the hook instantiated a scene and ran the project''s _init' }
 
     # Where it must stay quiet.
     Assert-Silent (Invoke-Hook (New-EditInput $game (Join-Path $game 'project.godot')) $noGodot) 'a file that is not a script, scene or resource'

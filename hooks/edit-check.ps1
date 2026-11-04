@@ -1,6 +1,6 @@
 #Requires -Version 7.6
 # PostToolUse hook (Edit and Write): after Claude edits a .gd, .tscn or .tres file, loads that one file in headless Godot
-# (ci/godot/tools/editcheck.gd) and tells Claude at once when it does not compile, does not instantiate or names something
+# (ci/godot/tools/editcheck.gd) and tells Claude at once when it does not compile or names something
 # that is not there, instead of at the end of the turn. A file that loads says nothing. It costs the engine's start-up,
 # about 0.2 s whatever the project's size, and never blocks: the tool has already run, so the note is added as context.
 # It stays quiet (exit 0, no output) when it cannot check: no Godot found, the game not imported yet (no .godot folder),
