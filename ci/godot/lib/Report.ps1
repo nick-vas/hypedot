@@ -423,20 +423,34 @@ function Read-RunHistory([string]$ProjectDir, [ref]$SkippedLines) {
     }
 }
 
+# How many test runs in a row, this one included, a failure id was in: 1 when it is new, 2 when the last run of the same
+# scope had it too, and so on. $Scoped are the earlier test runs of this scope, newest first. A run that did not list it
+# ends the streak, and so does a run whose list was cut before the id (whether it failed there is unknown, so the count
+# stops at what is known).
+function Get-FailureStreak([string]$Id, [object[]]$Scoped) {
+    $streak = 1
+    foreach ($entry in $Scoped) {
+        $listed = [string[]]@($entry.failures | Where-Object { $_ } | ForEach-Object { [string]$_ })
+        if ($listed -ccontains $Id) { $streak++; continue }
+        return $streak
+    }
+    return $streak
+}
+
 # Compares this run's failure ids with the newest earlier test run of the same scope in $History. Without one,
 # comparedWith and the three lists are null: nothing claims to be new without a baseline. When either side was cut at
 # the cap, an id past the other side's cut is in neither list, because whether it failed there is unknown. $Excused are ids
 # that failed this run but do not count (flaky: passed on a retry; quarantined): they are not "fixed".
 function Get-FailureDelta([string[]]$Ids, [bool]$Truncated, $Scope, [object[]]$History, [string[]]$Excused = @()) {
-    $previous = $null
-    # Newest first: the scan usually stops at the last line.
-    for ($i = $History.Count - 1; $i -ge 0 -and -not $previous; $i--) {
+    # The earlier test runs of this scope, newest first (the scan of the history runs from its end).
+    $scoped = @(for ($i = $History.Count - 1; $i -ge 0; $i--) {
         $entry = $History[$i]
         if ($entry -isnot [psobject] -or -not $entry.PSObject.Properties['command'] -or $entry.command -ne 'test') { continue }
         if (-not $entry.PSObject.Properties['failures'] -or -not $entry.PSObject.Properties['scope']) { continue }
-        if (Test-SameScope $entry.scope $Scope) { $previous = $entry }
-    }
-    if (-not $previous) { return [ordered]@{ comparedWith = $null; new = $null; stillFailing = $null; fixed = $null; truncated = $Truncated } }
+        if (Test-SameScope $entry.scope $Scope) { $entry }
+    })
+    $previous = if ($scoped.Count -gt 0) { $scoped[0] } else { $null }
+    if (-not $previous) { return [ordered]@{ comparedWith = $null; new = $null; stillFailing = $null; fixed = $null; truncated = $Truncated; longestStreak = $null } }
 
     $now = [string[]]@($Ids | Where-Object { $_ })
     $before = [string[]]@($previous.failures | Where-Object { $_ } | ForEach-Object { [string]$_ })
@@ -451,13 +465,17 @@ function Get-FailureDelta([string[]]$Ids, [bool]$Truncated, $Scope, [object[]]$H
         -not $Cut -or $List.Count -eq 0 -or [string]::CompareOrdinal($Id, $List[$List.Count - 1]) -le 0
     }
     $split = { param([string]$Id) $runner, $name = $Id -split '\|', 2; [ordered]@{ runner = $runner; name = $name } }
+    $splitStreak = { param([string]$Id, [int]$Streak) $item = & $split $Id; $item['streak'] = $Streak; $item }
+    $streaks = @{}
+    foreach ($id in $now) { if ($beforeSet.Contains($id)) { $streaks[$id] = Get-FailureStreak $id $scoped } }
     $time = $previous.PSObject.Properties['time'] ? $previous.time : $null
     return [ordered]@{
         comparedWith = $(if ($time -is [datetime]) { $time.ToUniversalTime().ToString('o') } else { [string]$time })
         new = @(foreach ($id in $now) { if (-not $beforeSet.Contains($id) -and (& $known $id $beforeCut $before)) { & $split $id } })
-        stillFailing = @(foreach ($id in $now) { if ($beforeSet.Contains($id)) { & $split $id } })
+        stillFailing = @(foreach ($id in $now) { if ($beforeSet.Contains($id)) { & $splitStreak $id $streaks[$id] } })
         fixed = @(foreach ($id in $before) { if (-not $nowSet.Contains($id) -and (& $known $id $Truncated $now)) { & $split $id } })
         truncated = ($Truncated -or $beforeCut)
+        longestStreak = $(if ($streaks.Count -gt 0) { [int]($streaks.Values | Measure-Object -Maximum).Maximum } else { $(if ($now.Count -gt 0) { 1 } else { 0 }) })
     }
 }
 

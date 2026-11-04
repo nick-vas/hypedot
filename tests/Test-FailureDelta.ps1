@@ -139,6 +139,42 @@ try {
     Add-RunHistory $true ''
     if (@(Get-Content -LiteralPath $trimFile).Count -ne 2001) { $failures += 'under 2500 lines nothing is cut' }
 } finally { Remove-Item -LiteralPath $trimProject -Recurse -Force }
+# Streaks: how many runs of the same scope in a row a failure was in, this one included (the godot-test-loop skill stops
+# at 3 attempts at the same failure). B failed in three earlier runs: its streak is 4; C is new and carries none.
+$now = Get-FailureIds @((New-Run 'gut' @('test_b', 'test_c')))
+$history = @(
+    (New-Entry '2026-10-21T07:00:00Z' @('gut') '' @('gut|test_b')),
+    (New-Entry '2026-10-21T08:00:00Z' @('gut') '' @('gut|test_a', 'gut|test_b')),
+    (New-Entry '2026-10-21T09:00:00Z' @('gut') '' @('gut|test_b')))
+$delta = Get-FailureDelta $now.Ids $now.Truncated (Get-TestScope @('gut') '') $history
+$byName = @{}; foreach ($f in $delta.stillFailing) { $byName[$f.name] = $f.streak }
+if ($byName['test_b'] -ne 4 -or $delta.stillFailing.Count -ne 1) { $failures += "test_b should be on its 4th run in a row: $($delta.stillFailing | ConvertTo-Json -Compress -Depth 4)" }
+if ($delta.longestStreak -ne 4) { $failures += "longestStreak should be 4: $($delta.longestStreak)" }
+if ($delta.new[0].PSObject.Properties['streak'] -or $delta.new[0].Contains('streak')) { $failures += 'a new failure has no streak' }
+# A run without it ends the streak, however old the earlier ones are.
+$history = @(
+    (New-Entry '2026-10-21T07:00:00Z' @('gut') '' @('gut|test_b')),
+    (New-Entry '2026-10-21T08:00:00Z' @('gut') '' @('gut|test_a')),
+    (New-Entry '2026-10-21T09:00:00Z' @('gut') '' @('gut|test_b')))
+$now = Get-FailureIds @((New-Run 'gut' @('test_b')))
+$delta = Get-FailureDelta $now.Ids $now.Truncated (Get-TestScope @('gut') '') $history
+if ($delta.stillFailing[0].streak -ne 2) { $failures += "a run without test_b should end its streak (2 expected): $($delta.stillFailing[0].streak)" }
+# Runs of another scope are not part of it.
+$history = @(
+    (New-Entry '2026-10-21T08:00:00Z' @('gut') '' @('gut|test_b')),
+    (New-Entry '2026-10-21T08:30:00Z' @('gut') 'test_other' @('gut|test_b')),
+    (New-Entry '2026-10-21T09:00:00Z' @('gut') '' @('gut|test_b')))
+$delta = Get-FailureDelta $now.Ids $now.Truncated (Get-TestScope @('gut') '') $history
+if ($delta.stillFailing[0].streak -ne 3) { $failures += "a -Filter run is not part of the streak (3 expected): $($delta.stillFailing[0].streak)" }
+# Nothing failing now: 0. Only new failures: 1. No earlier run of the scope: null.
+$none = Get-FailureIds @((New-Run 'gut' @()))
+$delta = Get-FailureDelta $none.Ids $none.Truncated (Get-TestScope @('gut') '') $history
+if ($delta.longestStreak -ne 0) { $failures += "no failures should give longestStreak 0: $($delta.longestStreak)" }
+$onlyNew = Get-FailureIds @((New-Run 'gut' @('test_z')))
+$delta = Get-FailureDelta $onlyNew.Ids $onlyNew.Truncated (Get-TestScope @('gut') '') $history
+if ($delta.longestStreak -ne 1) { $failures += "only new failures should give longestStreak 1: $($delta.longestStreak)" }
+$delta = Get-FailureDelta $now.Ids $now.Truncated (Get-TestScope @('validate') '') $history
+if ($null -ne $delta.longestStreak) { $failures += 'without an earlier run of the scope longestStreak is null' }
 if ($failures) { $failures | ForEach-Object { Write-Host "FAIL $_" -ForegroundColor Red }; exit 1 }
-Write-Host 'failureDelta classes failures as new, still failing and fixed against the last run of the same scope, ignores other scopes and damaged lines, and keeps 200 ids'
+Write-Host 'failureDelta classes failures as new, still failing and fixed against the last run of the same scope, ignores other scopes and damaged lines, keeps 200 ids and counts how many runs in a row a failure was in'
 exit 0
