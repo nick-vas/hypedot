@@ -608,6 +608,9 @@ jobs:
       - name: validate fails a .tres that keeps a renamed export's old key
         shell: pwsh
         run: ./tests/Test-StaleTres.ps1
+      - name: The edit hook reports a broken script or scene at once and says nothing for a file that loads
+        shell: pwsh
+        run: ./tests/Test-EditCheck.ps1
       - name: shot -MaxChangedPercent fails a screen that changed against its baseline
         shell: pwsh
         run: ./tests/Test-ShotChanged.ps1

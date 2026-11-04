@@ -64,6 +64,7 @@ $cases = @(
     @{ File = 'tests/Test-GameProgramme.ps1'; Runs = 'game-benchmark'; Not = 'measure', 'web', 'init' }
     @{ File = 'tests/Test-FieldTest.ps1'; Runs = 'field-test'; Not = 'game-benchmark', 'measure', 'web' }
     @{ File = 'hooks/stop-gate.ps1'; Runs = 'init'; Not = 'measure', 'web', 'field-test' }
+    @{ File = 'hooks/edit-check.ps1'; Runs = 'init', 'measure'; Not = 'web', 'field-test' }
     @{ File = "tests/unnamed-$([guid]::NewGuid().ToString('N')).json"; Runs = $gated; Not = @() }
 )
 foreach ($case in $cases) {
