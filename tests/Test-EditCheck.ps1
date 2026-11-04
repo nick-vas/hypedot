@@ -55,6 +55,10 @@ function Assert-Note($Result, [string]$What, [string[]]$Contains) {
     $text = "$($doc.hookSpecificOutput.additionalContext)"
     foreach ($needle in $Contains) { if ($text -notmatch [regex]::Escape($needle)) { $script:failures += "$What should mention '$needle': $text" } }
     if ($text -match 'editcheck\.gd') { $script:failures += "$What shows the checking tool's own stack frames: $text" }
+    # The engine's words reach Claude as quoted data, without the machine's paths.
+    if ($text -notmatch '(?s)quoted as data.*```text\n.*\n```') { $script:failures += "$What does not fence the engine's output as data: $text" }
+    if ($text.Contains($temp) -or $text.Contains($temp.Replace('\', '/'))) { $script:failures += "$What shows the machine's path to the game: $text" }
+    if (([regex]::Matches($text, '```')).Count -ne 2) { $script:failures += "$What has more than one fence: $text" }
 }
 
 try {
