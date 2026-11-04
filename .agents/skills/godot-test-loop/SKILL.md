@@ -32,7 +32,9 @@ pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 test -Json -Quiet   # failures 
 
 Fix, run, repeat has to end. Count attempts at one failure, not runs: an attempt is one change to the code followed by a
 run of the same scope. The same failure is the same `error.code` with the same `engineErrors[].key`, or the same test
-name still in `failureDelta.stillFailing`.
+name still in `failureDelta.stillFailing`. For a test, the kit counts for you: `stillFailing[].streak` is the number of
+runs of this scope in a row that had it (`failureDelta.longestStreak` is the largest), so a streak of 3 is the third
+attempt; keep your own count for a failure that is not a test (`build-failed`, `import-failed`).
 
 - **After 3 attempts at the same failure, stop changing code.** Write down in a line each what you tried and what the run
   showed. Then read the log the `log` field names once, start from the first error in it rather than the last, and

@@ -40,6 +40,16 @@ It already caught a skill that used `-Mcp` before the parameter existed.
 - GDScript/C# parity checking: our skills are about the toolchain, not language examples.
 - A generated skill index and multi-host plugin manifests (Codex, Cursor, OpenCode...): worth doing when there are users on those hosts.
 - A hook that injects a routing card at session start: AGENTS.md covers it for now.
+- A "not for X, see Y" clause on the descriptions of overlapping skills (suggested by the agent-harness articles read on
+  2026-11-04, which say a tool description should also say when not to use it). Measured first, on 2026-11-04: 49
+  user messages (35 plain, 14 written to sit between two skills and to avoid the descriptions' words), each routed twice
+  by a Sonnet subagent that saw only the 53 names and descriptions. All 70 plain and 28 hard routings landed on the answer
+  written down beforehand (for the hard ones, one of two or three accepted skills). The runs named close calls (for
+  example `godot-pitfalls` against `godot-diagnose`, `game` against `weekly-review`) and still chose correctly, so there
+  was no misrouting for a clause to fix. A clause would add about 350 characters to the 10.2 KB every session loads, and
+  the validator warns on a second sentence in a description. Not done. Limits of the measurement: the router was a
+  subagent reading a list, not Claude Code's own skill matching; I wrote the messages and the key; 49 messages are few.
+  Reopen it if a real session loads the wrong skill, and add that message to the set.
 
 ## Run it
 

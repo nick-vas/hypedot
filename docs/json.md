@@ -182,7 +182,9 @@ baseline). A filtered run is therefore never compared with a full one, and never
 
 ```json
 "failureDelta": { "comparedWith": "2026-10-21T09:00:00.0000000Z",
-  "new": [ { "runner": "gut", "name": "test/test_score.gd.test_x" } ], "stillFailing": [], "fixed": [], "truncated": false }
+  "new": [ { "runner": "gut", "name": "test/test_score.gd.test_x" } ],
+  "stillFailing": [ { "runner": "gut", "name": "test/test_score.gd.test_y", "streak": 3 } ], "fixed": [], "truncated": false,
+  "longestStreak": 3 }
 ```
 - `comparedWith`: the time (UTC) of the run compared with, or `null` when there is none (the first run, or the first with
   this scope). Then `new`, `stillFailing` and `fixed` are `null` too: nothing is called new without a baseline.
@@ -190,6 +192,10 @@ baseline). A filtered run is therefore never compared with a full one, and never
   `name` (the test's name as in `failures[]`; the message is left out because it can hold numbers that change).
 - A runner that failed without naming a failing test (it crashed, timed out or found no tests) counts as one failure
   named `(runner)`.
+- `stillFailing[].streak`: how many `test` runs of the same scope in a row, this one included, the failure was in (2 when
+  only the last run had it too). A run without it ends the streak; a run of another scope is not counted. The
+  `godot-test-loop` skill stops changing code at 3. `longestStreak`: the largest of them, `1` when every failure is new,
+  `0` when nothing failed, `null` without a baseline.
 - Each side keeps at most 200 failures (the first 200 in ordinal order of `runner|name`); `truncated` is `true` when either
   side had more. A failure beyond the other side's cut is then in none of the lists.
 

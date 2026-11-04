@@ -1,4 +1,4 @@
-# Loads one script, scene or resource and checks that a script compiles. A scene is loaded, not instantiated: loading
+# Loads one script, scene, resource or shader and checks that a script or shader compiles. A scene is loaded, not instantiated: loading
 # compiles its scripts and reports a missing reference, and instantiating would run the project's own code (_init) from a
 # hook that starts without being asked. Run by the
 # plugin's edit hook (hooks/edit-check.ps1) after each edit, so a broken file is reported when it breaks and not at the end
@@ -32,4 +32,10 @@ func _check(path: String) -> String:
 		var abstract: bool = script.has_method("is_abstract") and script.call("is_abstract")
 		if not script.can_instantiate() and not abstract:
 			return "script does not compile"
+	elif resource is Shader:
+		# Loading does not compile a shader headless; asking for its uniforms does, and prints SHADER ERROR if it is broken
+		# (validate.gd does the same, with different text so no compile cache can skip it).
+		var fresh := Shader.new()
+		fresh.code = (resource as Shader).code + "\n// validate\n"
+		fresh.get_shader_uniform_list()
 	return ""
