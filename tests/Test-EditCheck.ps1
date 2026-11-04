@@ -75,6 +75,9 @@ try {
     # A scene whose script writes a file in _init: the hook loads the scene and must not run that code.
     Set-Content -LiteralPath (Join-Path $game 'side_effect.gd') -Value "extends Node`nfunc _init() -> void:`n`tvar f := FileAccess.open(`"res://ran.txt`", FileAccess.WRITE)`n`tf.store_string(`"ran`")`n"
     Set-Content -LiteralPath (Join-Path $game 'side_effect.tscn') -Value "[gd_scene format=3]`n[ext_resource type=`"Script`" path=`"res://side_effect.gd`" id=`"1`"]`n[node name=`"X`" type=`"Node`"]`nscript = ExtResource(`"1`")`n"
+    Set-Content -LiteralPath (Join-Path $game 'good.gdshader') -Value "shader_type canvas_item;`nuniform float amount = 1.0;`nvoid fragment() { COLOR = vec4(amount); }`n"
+    Set-Content -LiteralPath (Join-Path $game 'broken_name.gdshader') -Value "shader_type canvas_item;`nvoid fragment() { COLOR = vec4(undefined_var); }`n"
+    Set-Content -LiteralPath (Join-Path $game 'broken_syntax.gdshader') -Value "shader_type canvas_item;`nvoid fragment() { COLOR = vec4(1.0) }`n"
     New-Item -ItemType Directory -Force (Join-Path $game 'addons/some_addon') | Out-Null
     Set-Content -LiteralPath (Join-Path $game 'addons/some_addon/broken.gd') -Value "extends Node`nfunc f(:`n"
 
@@ -86,6 +89,10 @@ try {
     Assert-Note (Invoke-Hook (New-EditInput $game (Join-Path $game 'broken_syntax.gd')) $noGodot) 'a syntax error' @('res://broken_syntax.gd', 'Parse Error', 'broken_syntax.gd:2')
     Assert-Note (Invoke-Hook (New-EditInput $game (Join-Path $game 'broken_name.gd')) $noGodot) 'an undeclared identifier' @('res://broken_name.gd', 'undefined_thing')
     Assert-Note (Invoke-Hook (New-EditInput $game (Join-Path $game 'broken_ref.tscn')) $noGodot) 'a scene with a missing script' @('res://broken_ref.tscn', 'nope.gd')
+    # Shaders compile only when asked for their uniforms; a good one says nothing, a broken one is named with the engine's words.
+    Assert-Silent (Invoke-Hook (New-EditInput $game (Join-Path $game 'good.gdshader')) $noGodot) 'a working shader'
+    Assert-Note (Invoke-Hook (New-EditInput $game (Join-Path $game 'broken_name.gdshader')) $noGodot) 'a shader with an unknown identifier' @('res://broken_name.gdshader', 'undefined_var')
+    Assert-Note (Invoke-Hook (New-EditInput $game (Join-Path $game 'broken_syntax.gdshader')) $noGodot) 'a shader with a syntax error' @('res://broken_syntax.gdshader', 'SHADER ERROR')
     # Write, with a path relative to the working folder.
     Assert-Note (Invoke-Hook (New-EditInput $game 'broken_syntax.gd' 'Write') $noGodot) 'a relative path from Write' @('res://broken_syntax.gd')
     # The same editor-built Godot named by GODOT_BIN: found there too.

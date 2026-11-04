@@ -1,5 +1,5 @@
 #Requires -Version 7.6
-# PostToolUse hook (Edit and Write): after Claude edits a .gd, .tscn or .tres file, loads that one file in headless Godot
+# PostToolUse hook (Edit and Write): after Claude edits a .gd, .tscn, .tres or .gdshader file, loads that one file in headless Godot
 # (ci/godot/tools/editcheck.gd) and tells Claude at once when it does not compile or names something
 # that is not there, instead of at the end of the turn. A file that loads says nothing. It costs the engine's start-up,
 # about 0.2 s whatever the project's size, and never blocks: the tool has already run, so the note is added as context.
@@ -40,7 +40,7 @@ try {
     $hookInput = $raw | ConvertFrom-Json -AsHashtable
     if ($hookInput -isnot [System.Collections.IDictionary] -or $hookInput['tool_input'] -isnot [System.Collections.IDictionary]) { Exit-Quiet }
     $file = $hookInput['tool_input']['file_path']
-    if (-not $file -or $file -isnot [string] -or $file -notmatch '\.(gd|tscn|tres)$') { Exit-Quiet }
+    if (-not $file -or $file -isnot [string] -or $file -notmatch '\.(gd|tscn|tres|gdshader)$') { Exit-Quiet }
     if (-not [System.IO.Path]::IsPathRooted($file) -and $hookInput['cwd']) { $file = Join-Path $hookInput['cwd'] $file }
     if (-not (Test-Path -LiteralPath $file -PathType Leaf)) { Exit-Quiet }   # a failed or deleted write
 
