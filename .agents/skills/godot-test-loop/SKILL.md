@@ -28,6 +28,23 @@ pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 test -Json -Quiet   # failures 
    scene references, broken UI flows and runtime errors that no unit test covers (`ui-flows`).
 6. **Refactor with the kit green**, then repeat. Before saying it is done, follow `verify-before-done`.
 
+### When the loop does not converge
+
+Fix, run, repeat has to end. Count attempts at one failure, not runs: an attempt is one change to the code followed by a
+run of the same scope. The same failure is the same `error.code` with the same `engineErrors[].key`, or the same test
+name still in `failureDelta.stillFailing`.
+
+- **After 3 attempts at the same failure, stop changing code.** Write down in a line each what you tried and what the run
+  showed. Then read the log the `log` field names once, start from the first error in it rather than the last, and
+  check the cause you assumed against the file and line the JSON gave.
+- **A fourth attempt needs a different cause.** A new idea that explains every attempt so far, tried once; never the same
+  change again with a small variation.
+- **Still failing after that, report and ask.** Say which failure, what each attempt changed and what each run showed, and
+  that you stopped. Do not skip, loosen or quarantine the test (see Rules), and do not report a partly fixed run as green.
+- **A change that adds `failureDelta.new` is going backwards.** Undo it, then count it as an attempt.
+- **A run that fails for a reason outside the code** (`download-failed`, `unsafe-results-dir`) is not an attempt: fix the
+  cause or report it.
+
 ## Choosing a framework
 
 | Situation | Use | Why |
