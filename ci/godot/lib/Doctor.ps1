@@ -245,7 +245,7 @@ function Read-KitConfirmation([string]$Question) {
 function Invoke-KitFilesIssueReport($Files) {
     $repo = 'nick-vas/hyperdot'
     if (@($Files).Count -eq 0) { Write-Console 'Nothing to report: no kit file is uncommitted.'; return }
-    $version = try { (Get-Content -LiteralPath (Join-Path (Get-HelpKitRoot) '.claude-plugin/plugin.json') -Raw | ConvertFrom-Json).version } catch { 'unknown' }
+    $version = Get-KitVersion
     $title = 'doctor: files the kit wrote are not committed in a game'
     $rows = @($Files | ForEach-Object { "| ``$($_.path)`` | $($_.status) | $($_.machinePath ? 'yes' : 'no') |" })
     $body = (@(

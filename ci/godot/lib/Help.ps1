@@ -6,6 +6,17 @@
 # The kit's own folder (two levels above ci/godot/lib).
 function Get-HelpKitRoot { return Split-Path (Split-Path (Split-Path $PSScriptRoot)) }
 
+# The kit's latest released version: the newest "## x.y.z - date" heading of its CHANGELOG.md ('unknown' when there is none). The plugin
+# manifest declares no version, so that Claude Code treats every commit on main as a new one.
+function Get-KitVersion {
+    $changelog = Join-Path (Get-HelpKitRoot) 'CHANGELOG.md'
+    if (-not (Test-Path -LiteralPath $changelog -PathType Leaf)) { return 'unknown' }
+    foreach ($line in Get-Content -LiteralPath $changelog) {
+        if ($line -match '\A## (?<v>[0-9]+\.[0-9]+\.[0-9]+[A-Za-z0-9.+-]*) - ') { return $Matches.v }
+    }
+    return 'unknown'
+}
+
 # docs/help.md as entries: a "## Commands", "## Skills" or "## Subagents" section of "### name" headings, each followed by
 # its one-line summary and then its page.
 function Read-HelpEntries([string]$Path) {

@@ -25,8 +25,8 @@ keep its `.gdignore`: without it, the kit's `.gd` tool scripts (ten in `ci/godot
 With `-Agents` it also writes `AGENTS.md`, `CLAUDE.md` and `docs/kit-notes.md` (where the agent notes each
 time the kit got in the way), and enables the kit as a Claude Code plugin in `.claude/settings.json`. The plugin supplies the
 skills, the subagents and the hooks, so nothing is copied into the game and nothing there goes stale; the skills are named
-`/hyperdot:game` and so on. It comes from GitHub (`-PluginSource github`, the default: any machine, cloud sessions; changes arrive
-with a release, `claude plugin update hyperdot@hyperdot`) or from the kit's folder (`-PluginSource local`: a `git pull` there updates every
+`/hyperdot:game` and so on. It comes from GitHub (`-PluginSource github`, the default: any machine, cloud sessions; every commit on `main` is a new plugin
+version, fetched with `claude plugin update hyperdot@hyperdot` or by the marketplace's auto-update) or from the kit's folder (`-PluginSource local`: a `git pull` there updates every
 game). `-CopySkills` copies the skills and subagents instead, for a host that loads no plugins; it is refused in a game that
 already enables the plugin, because each skill would load twice. `docs/kit-help.md` is no longer written: `help` and `/kit` write
 `.godot/kit-help.md`, which no repository tracks. Start every Claude Code session in the game with `/game`: it reads where the game stands and

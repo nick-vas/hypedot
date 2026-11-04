@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version to release, without the v (for example 0.1.0). CHANGELOG.md needs a "## <version> - " section and .claude-plugin/plugin.json the same version.'
+        description: 'Version to release, without the v (for example 0.1.0). CHANGELOG.md needs a "## <version> - " section.'
         required: true
         type: string
       sha:
@@ -94,10 +94,6 @@ jobs:
             $link = "https://github.com/$env:GITHUB_REPOSITORY/blob/v$env:VERSION/CHANGELOG.md"
             Set-Content -LiteralPath $notes -Encoding utf8 -Value "$cut`n`n(Cut here: the whole section is in [CHANGELOG.md]($link).)"
           }
-          $manifest = git show "$($env:RELEASE_SHA):.claude-plugin/plugin.json"
-          if ($LASTEXITCODE -ne 0) { throw "git show $env:RELEASE_SHA:.claude-plugin/plugin.json failed (exit code $LASTEXITCODE)" }
-          $plugin = ($manifest | Out-String | ConvertFrom-Json).version
-          if ($plugin -ne $env:VERSION) { throw ".claude-plugin/plugin.json has version $plugin, not $env:VERSION" }
           "NOTES_FILE=$notes" >> $env:GITHUB_ENV
       - name: Tag the version and move the major tag
         shell: pwsh

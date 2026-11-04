@@ -130,7 +130,7 @@ The codes in [`docs/json.md`](json.md#error-codes), and the tests that raise the
 | `Deck.ps1` | 3/3 | `Test-Deck.ps1` |
 | `Detect.ps1` | 11/12 | `Test-Addons.ps1`, `Test-Steam.ps1`, `Test-Detect.ps1`, `Test-Platforms.ps1`, `Test-ErrorCodes.ps1`, `Test-AssetManifest.ps1`, `Test-Audio.ps1`, `Test-BuildSize.ps1` and 37 more |
 | `Doctor.ps1` | 13/16 | `Test-Addons.ps1`, `Test-Steam.ps1`, `Test-SelectJobs.ps1`, `Test-DoctorFixture.ps1`, `Test-AssetManifest.ps1`, `Test-Audio.ps1`, `Test-Context.ps1`, `Test-ErrorCodes.ps1` and 5 more |
-| `Help.ps1` | 5/10 | `Test-Help.ps1`, `Test-ErrorCodes.ps1` |
+| `Help.ps1` | 5/11 | `Test-Help.ps1`, `Test-ErrorCodes.ps1` |
 | `Init.ps1` | 10/13 | `Test-KitPaths.ps1`, `Test-UpdatePins.ps1`, `Test-ErrorCodes.ps1`, `Test-OldState.ps1`, `Test-Plan.ps1` |
 | `Juice.ps1` | 1/4 | `Test-JuiceLog.ps1`, `Test-AssetManifest.ps1`, `Test-ErrorKeys.ps1`, `Test-Flaky.ps1`, `Test-Handoffs.ps1`, `Test-Plan.ps1` |
 | `Layout.ps1` | 3/3 | `Test-Deck.ps1`, `Test-Layout.ps1` |
