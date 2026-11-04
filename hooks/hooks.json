@@ -1,6 +1,19 @@
 {
-  "description": "Keeps 'done' honest: once for each set of changes, stops Claude from ending its turn while Godot files changed since the last full passing test run, and tells it to run the tests. If the tests ran and failed, or Claude stops again, it lets the turn end, so Claude must report the result. It checks only that the tests passed after the last edit; it is not a design or code review. A second Stop hook keeps the game's GitHub Project in step with plan/plan.json when the plan has one (docs/plan.md); it never blocks.",
+  "description": "After an edit to a .gd, .tscn or .tres file, loads that file in headless Godot and tells Claude at once if it is broken (hooks/edit-check.ps1; silent when it loads, never blocks). Keeps 'done' honest: once for each set of changes, stops Claude from ending its turn while Godot files changed since the last full passing test run, and tells it to run the tests. If the tests ran and failed, or Claude stops again, it lets the turn end, so Claude must report the result. It checks only that the tests passed after the last edit; it is not a design or code review. A second Stop hook keeps the game's GitHub Project in step with plan/plan.json when the plan has one (docs/plan.md); it never blocks.",
   "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh",
+            "args": ["-NoProfile", "-NonInteractive", "-File", "${CLAUDE_PLUGIN_ROOT}/hooks/edit-check.ps1"],
+            "timeout": 30
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "hooks": [
