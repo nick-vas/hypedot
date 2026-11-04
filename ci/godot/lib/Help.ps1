@@ -1,10 +1,21 @@
 # `help`: a Markdown reference of every command, skill and subagent (written to .godot/kit-help.md of the game, which no repository tracks, so a read-only command changes
-# nothing in the project; `init` puts a first copy in docs/kit-help.md), or the page of one. The text lives in docs/help.md, which the /kit skill shows through this command
+# nothing in the project), or the page of one. The text lives in docs/help.md, which the /kit skill shows through this command
 # too, so there is one source; a skill's or subagent's page adds the "when to use it" line of its own file. Needs no
 # project and no Godot.
 
 # The kit's own folder (two levels above ci/godot/lib).
 function Get-HelpKitRoot { return Split-Path (Split-Path (Split-Path $PSScriptRoot)) }
+
+# The kit's latest released version: the newest "## x.y.z - date" heading of its CHANGELOG.md ('unknown' when there is none). The plugin
+# manifest declares no version, so that Claude Code treats every commit on main as a new one.
+function Get-KitVersion {
+    $changelog = Join-Path (Get-HelpKitRoot) 'CHANGELOG.md'
+    if (-not (Test-Path -LiteralPath $changelog -PathType Leaf)) { return 'unknown' }
+    foreach ($line in Get-Content -LiteralPath $changelog) {
+        if ($line -match '\A## (?<v>[0-9]+\.[0-9]+\.[0-9]+[A-Za-z0-9.+-]*) - ') { return $Matches.v }
+    }
+    return 'unknown'
+}
 
 # docs/help.md as entries: a "## Commands", "## Skills" or "## Subagents" section of "### name" headings, each followed by
 # its one-line summary and then its page.

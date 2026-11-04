@@ -167,15 +167,14 @@ function Get-InstructionPathProblems([string]$Text, [string]$Where, [string]$Pro
     return @($problems)
 }
 
-# doctor: a WARN when the game has the kit's skills or subagents both as copies (init -Agents) and through the enabled
-# plugin (init -Plugin), which lists each twice (/game-plan and hyperdot:game-plan) and leaves the copy to go
+# doctor: a WARN when the game has the kit's skills or subagents both as copies (init -Agents -CopySkills, or an older init -Agents) and through the enabled
+# plugin, which lists each twice (/game-plan and hyperdot:game-plan) and leaves the copy to go
 # stale as the kit changes. Only copies of the kit's own names count; a skill the game wrote itself is left alone.
-function Get-PluginCopyProblem([string]$ProjectDir) {
-    $root = Get-GitRoot $ProjectDir
-    $root = if ($root) { $root } else { $ProjectDir }
+# Whether the hyperdot plugin is enabled for the game in .claude/settings.json or settings.local.json (a plugin switched off does not count).
+function Test-HyperdotPluginEnabled([string]$Root) {
     $enabled = $false
     foreach ($name in 'settings.json', 'settings.local.json') {
-        $file = Join-Path $root ".claude/$name"
+        $file = Join-Path $Root ".claude/$name"
         if (-not (Test-Path -LiteralPath $file -PathType Leaf)) { continue }
         try { $settings = Get-Content -LiteralPath $file -Raw | ConvertFrom-Json -AsHashtable } catch { continue }
         if ($settings -isnot [System.Collections.IDictionary] -or -not $settings.Contains('enabledPlugins')) { continue }
@@ -183,6 +182,13 @@ function Get-PluginCopyProblem([string]$ProjectDir) {
         if ($plugins -isnot [System.Collections.IDictionary]) { continue }
         foreach ($key in $plugins.Keys) { if ("$key" -like 'hyperdot@*' -and $plugins[$key] -eq $true) { $enabled = $true } }
     }
+    return $enabled
+}
+
+function Get-PluginCopyProblem([string]$ProjectDir) {
+    $root = Get-GitRoot $ProjectDir
+    $root = if ($root) { $root } else { $ProjectDir }
+    $enabled = Test-HyperdotPluginEnabled $root
     if (-not $enabled) { return $null }
     $suiteRoot = Split-Path (Split-Path (Split-Path $PSScriptRoot))
     $copies = [System.Collections.Generic.List[string]]::new()

@@ -220,8 +220,10 @@ function Initialize-Project($Info) {
     New-CiWorkflow $project
 }
 
-# init -Agents: AGENTS.md (CLAUDE.md imports it) and the skills, so any coding agent knows the workflow. Adds only.
-function Add-AgentFiles($Info, [string]$SuiteScript, [bool]$Plugin) {
+# init -Agents: AGENTS.md (CLAUDE.md imports it) and docs/kit-notes.md, and the plugin that supplies the skills, the subagents and the hooks, so
+# nothing is copied into the game and nothing goes stale there. -CopySkills copies the skills and subagents instead, for a host that loads no
+# plugins, and never into a game that already enables the plugin. Adds only.
+function Add-AgentFiles($Info, [string]$SuiteScript, [bool]$Copy, [string]$PluginSource, [bool]$SourceChosen) {
     $root = Get-GitRoot $Info.ProjectDir
     $root = $root ? $root : $Info.ProjectDir
     $suiteRoot = Split-Path (Split-Path (Split-Path $PSScriptRoot))
@@ -249,14 +251,17 @@ function Add-AgentFiles($Info, [string]$SuiteScript, [bool]$Plugin) {
         Copy-Item -LiteralPath (Join-Path $PSScriptRoot '../templates/kit-notes.md') -Destination $notes
         Write-InitStep added 'docs/kit-notes.md (one line each time the kit gets in the way)'
     }
-    # docs/kit-help.md: every command, skill and subagent in one Markdown page, what /kit shows. a first copy for the repository to carry; `help` and /kit write
-    # .godot/kit-help.md, never this file, so a read-only command leaves the working tree clean.
-    $helpFile = Join-Path $root 'docs/kit-help.md'
-    if (Test-Path -LiteralPath $helpFile) { Write-InitStep skipped 'docs/kit-help.md exists (left as it is; `help` writes .godot/kit-help.md)' }
-    else { $null = Write-HelpFile $helpFile; Write-InitStep added 'docs/kit-help.md (the kit''s commands, skills and subagents; /kit shows it)' }
-    # With the plugin, skills, the verifier subagent and the Stop hook come from the kit itself and stay up to date;
-    # copies would only duplicate them.
-    if ($Plugin) { Add-PluginSettings $root $suiteRoot; return }
+    # docs/kit-help.md: not written any more. It was a copy of the kit's text that went stale in the game; `help` and /kit write the
+    # same page to .godot/kit-help.md, which no repository tracks. A copy an older init left is named, so it can be deleted.
+    if (Test-Path -LiteralPath (Join-Path $root 'docs/kit-help.md')) {
+        Write-InitStep skipped 'docs/kit-help.md is a copy an older init wrote and goes stale: delete it; `help` and /kit write .godot/kit-help.md'
+    }
+    # With the plugin, skills, subagents and hooks come from the kit itself and stay up to date; copies would only duplicate them.
+    if (-not $Copy) { Add-PluginSettings $root $suiteRoot $PluginSource $SourceChosen; return }
+    if (Test-HyperdotPluginEnabled $root) {
+        Write-InitStep skipped 'no skills or subagents copied: the game already enables the hyperdot plugin, which supplies them (a copy would load twice and go stale)'
+        return
+    }
     # Skills and agents name the kit as ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1, which Claude Code fills in for the
     # plugin. Copies get this machine's path instead.
     $placeholder = '${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1'
@@ -288,10 +293,17 @@ function Add-AgentFiles($Info, [string]$SuiteScript, [bool]$Plugin) {
     }
 }
 
-# init -Agents -Plugin: the game's .claude/settings.json registers this kit folder as a plugin marketplace and enables the
-# plugin, so Claude Code loads the skills, the verifier subagent and the Stop hook straight from the kit (a local folder is
-# loaded in place, so a git pull in the kit updates every game). Adds only; an existing file is backed up first.
-function Add-PluginSettings([string]$Root, [string]$SuiteRoot) {
+# The GitHub repository the plugin is fetched from when -PluginSource is github: this kit's own, or a fork named in HYPERDOT_KIT_REPO.
+function Get-KitRepository {
+    if ($env:HYPERDOT_KIT_REPO -match '\A[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+\z') { return $env:HYPERDOT_KIT_REPO }
+    return 'nick-vas/hyperdot'
+}
+
+# init -Agents: the game's .claude/settings.json registers this kit as a plugin marketplace and enables the plugin, so Claude Code loads
+# the skills, the subagents and the hooks from it. github: from the kit's GitHub repository (any machine, cloud sessions; /plugin update
+# brings changes). local: from the folder this kit runs from, loaded in place (a git pull in the kit updates every game). Adds only; an
+# existing file is backed up first. A game that already enables the plugin from the other source keeps it unless -PluginSource is given.
+function Add-PluginSettings([string]$Root, [string]$SuiteRoot, [string]$Source = 'github', [bool]$SourceChosen = $false) {
     $file = Join-Path $Root '.claude/settings.json'
     $settings = if (Test-Path -LiteralPath $file) { Get-Content -LiteralPath $file -Raw | ConvertFrom-Json -AsHashtable } else { [ordered]@{} }
     if (-not $settings) { $settings = [ordered]@{} }
@@ -300,18 +312,28 @@ function Add-PluginSettings([string]$Root, [string]$SuiteRoot) {
     # Before Hyperdot the plugin was godot-agent-kit: its entries are replaced once.
     $renamed = $marketplaces.Contains('godot-agent-kit') -or $enabled.Contains('godot-agent-kit@godot-agent-kit')
     $marketplaces.Remove('godot-agent-kit'); $enabled.Remove('godot-agent-kit@godot-agent-kit')
+    $wanted = if ($Source -eq 'github') { [ordered]@{ source = 'github'; repo = (Get-KitRepository) } }
+              else { [ordered]@{ source = 'directory'; path = ($SuiteRoot -replace '\\', '/') } }
     if (-not $renamed -and $marketplaces.Contains('hyperdot') -and $enabled.Contains('hyperdot@hyperdot')) {
-        Write-InitStep skipped '.claude/settings.json already enables the hyperdot plugin'
-        return
+        $have = $marketplaces['hyperdot']
+        $haveSource = if ($have -is [System.Collections.IDictionary] -and $have.Contains('source') -and $have['source'] -is [System.Collections.IDictionary]) { $have['source'] } else { @{} }
+        $same = $haveSource.Contains('source') -and $haveSource['source'] -eq $wanted['source'] -and
+            (($wanted['source'] -eq 'github' -and $haveSource['repo'] -eq $wanted['repo']) -or $wanted['source'] -eq 'directory')
+        if ($same -or -not $SourceChosen) {
+            $kind = if ($haveSource.Contains('source')) { $haveSource['source'] } else { 'an unknown source' }
+            Write-InitStep skipped ".claude/settings.json already enables the hyperdot plugin (from $kind$(if (-not $same) { "; -PluginSource $Source switches it" }))"
+            return
+        }
     }
     if (Test-Path -LiteralPath $file) { Copy-Item -LiteralPath $file "$file.bak" -Force }
-    $marketplaces['hyperdot'] = [ordered]@{ source = [ordered]@{ source = 'directory'; path = ($SuiteRoot -replace '\\', '/') } }
+    $marketplaces['hyperdot'] = [ordered]@{ source = $wanted }
     $enabled['hyperdot@hyperdot'] = $true
     $settings['extraKnownMarketplaces'] = $marketplaces
     $settings['enabledPlugins'] = $enabled
     New-Item -ItemType Directory -Force (Split-Path $file) | Out-Null
     $settings | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $file -Encoding utf8
-    Write-InitStep updated ".claude/settings.json: hyperdot plugin from $SuiteRoot (Claude Code asks to install it on the next start)"
+    $from = if ($Source -eq 'github') { "GitHub ($($wanted['repo']))" } else { $SuiteRoot }
+    Write-InitStep updated ".claude/settings.json: hyperdot plugin from $from (Claude Code asks to install it on the next start)"
 }
 
 # aseprite-mcp (diivi/aseprite-mcp, MIT) at a reviewed commit. It has no release and no lock uvx reads: unpinned, its

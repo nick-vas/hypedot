@@ -411,9 +411,58 @@ try {
     Add-Content -LiteralPath $notes -Value '2026-10-23 test: a note'
     $again = pwsh -NoProfile -NonInteractive -File $ci init -Plugin -Json -Project $starter 2>$null | ConvertFrom-Json
     Assert-True ((Get-Content -LiteralPath $notes -Raw) -match 'a note' -and @($again.steps | Where-Object { $_.message -match 'kit-notes\.md exists' }).Count -eq 1) 'a second init keeps the notes'
-    # And docs/kit-help.md, the kit's help as one Markdown page; an existing one is left for /kit to rewrite.
+    # docs/kit-help.md is not written: the page would be a copy that goes stale; `help` and /kit write .godot/kit-help.md. A copy an older init left is named.
     $kitHelp = Join-Path $starter 'docs/kit-help.md'
-    Assert-True ((Test-Path -LiteralPath $kitHelp) -and (Get-Content -LiteralPath $kitHelp -Raw) -match '(?m)^\| `test` \| ' -and @($again.steps | Where-Object { $_.message -match 'kit-help\.md exists' }).Count -eq 1) 'init -Plugin writes docs/kit-help.md once'
+    Assert-True (-not (Test-Path -LiteralPath $kitHelp)) 'init writes no docs/kit-help.md'
+    Set-Content -LiteralPath $kitHelp -Value 'an older copy'
+    $third = pwsh -NoProfile -NonInteractive -File $ci init -Plugin -Json -Project $starter 2>$null | ConvertFrom-Json
+    Assert-True ((Get-Content -LiteralPath $kitHelp -Raw).Trim() -eq 'an older copy' -and @($third.steps | Where-Object { $_.message -match 'kit-help\.md is a copy' }).Count -eq 1) 'init names an old docs/kit-help.md and leaves it'
+    # The skills come from the plugin, never from copies: -Agents (and the older -Plugin) enable it from GitHub, write no skill or subagent
+    # into the game, and -PluginSource local registers this kit's folder instead.
+    $kitFolder = (Split-Path (Split-Path (Split-Path $ci -Parent) -Parent) -Parent) -replace '\\', '/'
+    $readSettings = { param($Game) Get-Content -LiteralPath (Join-Path $Game '.claude/settings.json') -Raw | ConvertFrom-Json -AsHashtable }
+    $newGame = { param($Name) $g = Join-Path ([System.IO.Path]::GetTempPath()) "$Name-$PID"; New-Item -ItemType Directory -Force $g | Out-Null
+        Copy-Item -LiteralPath (Join-Path $PSScriptRoot '../examples/gdscript/project.godot'), (Join-Path $PSScriptRoot '../examples/gdscript/main.gd'), (Join-Path $PSScriptRoot '../examples/gdscript/main.tscn'), (Join-Path $PSScriptRoot '../examples/gdscript/score.gd') -Destination $g; $g }
+    $agentsGame = & $newGame 'init-agents'
+    try {
+        $env:HYPERDOT_KIT_REPO = $null
+        pwsh -NoProfile -NonInteractive -File $ci init -Agents -Project $agentsGame 2>$null | Out-Null
+        $settings = & $readSettings $agentsGame
+        $source = $settings.extraKnownMarketplaces['hyperdot'].source
+        Assert-True ($source.source -eq 'github' -and $source.repo -eq 'nick-vas/hyperdot' -and $settings.enabledPlugins['hyperdot@hyperdot'] -eq $true) "init -Agents enables the plugin from GitHub: $($settings | ConvertTo-Json -Depth 6 -Compress)"
+        Assert-True (-not (Test-Path -LiteralPath (Join-Path $agentsGame '.claude/skills')) -and -not (Test-Path -LiteralPath (Join-Path $agentsGame '.agents/skills')) -and -not (Test-Path -LiteralPath (Join-Path $agentsGame '.claude/agents'))) 'init -Agents copies no skill or subagent'
+        Assert-True ((Test-Path -LiteralPath (Join-Path $agentsGame 'AGENTS.md')) -and (Test-Path -LiteralPath (Join-Path $agentsGame 'docs/kit-notes.md'))) 'init -Agents still writes AGENTS.md and the kit notes'
+        # A fork's repository, by environment.
+        $forkGame = & $newGame 'init-fork'
+        $env:HYPERDOT_KIT_REPO = 'someone/hyperdot-fork'
+        pwsh -NoProfile -NonInteractive -File $ci init -Agents -Project $forkGame 2>$null | Out-Null
+        $env:HYPERDOT_KIT_REPO = $null
+        Assert-True ((& $readSettings $forkGame).extraKnownMarketplaces['hyperdot'].source.repo -eq 'someone/hyperdot-fork') 'HYPERDOT_KIT_REPO names the repository of a fork'
+        Remove-Item -LiteralPath $forkGame -Recurse -Force
+        # A game on the local folder keeps it unless -PluginSource says otherwise (then the old file is kept as .bak).
+        $localGame = & $newGame 'init-local'
+        pwsh -NoProfile -NonInteractive -File $ci init -Agents -PluginSource local -Project $localGame 2>$null | Out-Null
+        $local = (& $readSettings $localGame).extraKnownMarketplaces['hyperdot'].source
+        Assert-True ($local.source -eq 'directory' -and $local.path -eq $kitFolder) "-PluginSource local registers this kit's folder: $($local | ConvertTo-Json -Compress -Depth 4)"
+        $kept = pwsh -NoProfile -NonInteractive -File $ci init -Agents -Json -Project $localGame 2>$null | ConvertFrom-Json
+        Assert-True ((& $readSettings $localGame).extraKnownMarketplaces['hyperdot'].source.source -eq 'directory' -and @($kept.steps | Where-Object { $_.message -match 'already enables the hyperdot plugin \(from directory; -PluginSource github switches it\)' }).Count -eq 1) 'a game on the local folder keeps it without -PluginSource'
+        pwsh -NoProfile -NonInteractive -File $ci init -Agents -PluginSource github -Project $localGame 2>$null | Out-Null
+        Assert-True ((& $readSettings $localGame).extraKnownMarketplaces['hyperdot'].source.source -eq 'github' -and (Test-Path -LiteralPath (Join-Path $localGame '.claude/settings.json.bak'))) '-PluginSource github switches it and keeps a .bak'
+        Remove-Item -LiteralPath $localGame -Recurse -Force
+        # -CopySkills copies for a host without plugins, and never into a game that enables the plugin.
+        $copyGame = & $newGame 'init-copy'
+        pwsh -NoProfile -NonInteractive -File $ci init -Agents -CopySkills -Project $copyGame 2>$null | Out-Null
+        Assert-True ((Test-Path -LiteralPath (Join-Path $copyGame '.claude/skills/game/SKILL.md')) -and (Test-Path -LiteralPath (Join-Path $copyGame '.agents/skills/game/SKILL.md')) -and (Test-Path -LiteralPath (Join-Path $copyGame '.claude/agents/godot-verifier.md')) -and -not (Test-Path -LiteralPath (Join-Path $copyGame '.claude/settings.json'))) 'init -Agents -CopySkills copies the skills and subagents and enables no plugin'
+        Remove-Item -LiteralPath $copyGame -Recurse -Force
+        $refused = pwsh -NoProfile -NonInteractive -File $ci init -Agents -CopySkills -Json -Project $agentsGame 2>$null | ConvertFrom-Json
+        Assert-True (-not (Test-Path -LiteralPath (Join-Path $agentsGame '.claude/skills')) -and @($refused.steps | Where-Object { $_.message -match 'already enables the hyperdot plugin, which supplies them' }).Count -eq 1) '-CopySkills copies nothing into a game that enables the plugin'
+        # The flags belong to init.
+        $bad = pwsh -NoProfile -NonInteractive -File $ci doctor -CopySkills -Json -Project $agentsGame 2>$null | ConvertFrom-Json
+        Assert-True ($bad.error.code -eq 'invalid-arguments') '-CopySkills with another command is refused'
+    } finally {
+        $env:HYPERDOT_KIT_REPO = $null
+        Remove-Item -LiteralPath $agentsGame -Recurse -Force -ErrorAction SilentlyContinue
+    }
 } finally {
     Remove-Item -LiteralPath $starter -Recurse -Force -ErrorAction SilentlyContinue
 }

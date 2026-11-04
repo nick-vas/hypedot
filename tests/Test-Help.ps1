@@ -14,6 +14,8 @@ function Assert-True([bool]$Condition, [string]$Name) {
 
 foreach ($lib in 'Common', 'Context', 'Help') { . (Join-Path $root "ci/godot/lib/$lib.ps1") }
 $helpFile = Join-Path $root 'docs/help.md'
+$kitVersion = Get-KitVersion
+Assert-True ($kitVersion -match '\A[0-9]+\.[0-9]+\.[0-9]+' -and (Get-Content -LiteralPath (Join-Path $root 'CHANGELOG.md') -Raw) -match "(?m)^## $([regex]::Escape($kitVersion)) - ") "the kit's version comes from the newest CHANGELOG.md heading: $kitVersion"
 $entries = @(Read-HelpEntries $helpFile)
 $subjects = Get-HelpSubjects
 foreach ($kind in $subjects.Keys) {

@@ -84,7 +84,7 @@ a removed task's card, which only the mock has seen.
 |---|---|---|
 | Who uses it | Only the owner, for their own games | Breaking changes are cheap. No installer, no public API promises beyond `docs/json.md` |
 | Which agents | Claude Code only | Use Claude Code's own features: plugins, slash commands, subagents, hooks, scheduled tasks |
-| How skills reach a game | The Claude Code plugin (`init -Agents -Plugin`); plain `init -Agents` copies them | Existing games keep their copies; a fix to a skill reaches every plugin game at once |
+| How skills reach a game | The Claude Code plugin (`init -Agents`, from GitHub by default or from the kit's folder with `-PluginSource local`); copies only with `-CopySkills` | No copies by default, so none go stale; a fix to a skill reaches every plugin game at once. Games from before keep their copies until they are deleted (`doctor` warns when a game has both) |
 | Agent and engine | The CLI with `-Json` verifies; an editor-bridge MCP (`init -Mcp godot-mcp` or `godot-ai`) authors and inspects ([mcp.md](mcp.md)) | The CLI stays the gate; scripted playtests in a live editor go through the bridge |
 | Verifying beyond unit tests | validate, smoke, `export -Run`, UI flows (the `flows` runner), `playthrough` and `shot -Baseline` | Each is a runner or a command with `-Json` output |
 | What must it survive | Godot releases, agent and tool changes, new genres and platforms, the owner's limited upkeep time | Automated canaries and self-review; the kit proposes its own updates; a size limit per skill |

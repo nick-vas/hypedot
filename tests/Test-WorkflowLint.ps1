@@ -66,6 +66,11 @@ $release = Get-Workflow 'release.yml'
 Assert-True ($release -match [regex]::Escape('\A[0-9]+\.[0-9]+\.[0-9]+\z') -and $release -match [regex]::Escape('\Av[0-9]+\z')) 'release.yml matches the version and the major tag whole, ASCII digits only'
 Assert-True ($release -notmatch [regex]::Escape('^\d+\.\d+\.\d+$') -and $release -notmatch [regex]::Escape('^v\d+$')) 'release.yml has no ^..$ / \d match of a version'
 Assert-True ($release -match 'Test-MajorTagMove\.ps1') 'release.yml asks Test-MajorTagMove.ps1 before moving the major tag'
+# The plugin manifest declares no version: Claude Code then takes every commit on main as a new version of the plugin, so a game that
+# enables it from GitHub gets each merged change. A `version` there would hold every game at the last one until it changed.
+$manifest = Get-Content -LiteralPath (Join-Path $root '.claude-plugin/plugin.json') -Raw | ConvertFrom-Json -AsHashtable
+Assert-True (-not $manifest.ContainsKey('version')) '.claude-plugin/plugin.json declares no version (a pinned one holds GitHub-sourced games at it)'
+Assert-True ($release -notmatch 'plugin\.json') 'release.yml does not read a version from plugin.json'
 $leftovers = [System.Collections.Generic.List[string]]::new()
 foreach ($file in @(& git -C $root ls-files -z '*.ps1' '*.yml') -join '' -split [char]0) {
     if (-not $file -or $file -eq 'tests/Test-WorkflowLint.ps1' -or $file -eq 'tests/Test-ReleaseNotes.ps1') { continue }

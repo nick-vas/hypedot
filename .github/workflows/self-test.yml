@@ -442,7 +442,7 @@ jobs:
       - name: test refuses a -Results folder inside the project that the kit did not make
         shell: pwsh
         run: ./tests/Test-ResultsDir.ps1
-      - name: Agent efficiency (-Quiet, failure details, run history, Stop hook, init -Agents / -Plugin)
+      - name: Agent efficiency (-Quiet, failure details, run history, Stop hook, init -Agents / -CopySkills)
         shell: pwsh
         run: |
           $game = New-Item -ItemType Directory (Join-Path $env:RUNNER_TEMP 'quiet-game')
@@ -474,17 +474,17 @@ jobs:
           if (-not $d.ok) { throw "the fixed test should pass: $($d | ConvertTo-Json -Depth 6)" }
           if (@($d.failureDelta.fixed | ForEach-Object name) -notcontains $f.name -or @($d.failureDelta.new).Count -ne 0) { throw "the fixed test should be in failureDelta.fixed: $($d.failureDelta | ConvertTo-Json -Depth 4)" }
           if (& $hook 'false') { throw 'the Stop hook should allow stopping after a passing run' }
-          # init -Agents copies the verifier with this machine's kit path; init -Plugin enables the plugin instead of copying.
-          ./ci/godot/hyperdot.ps1 init -Agents -Project $game | Out-Null
-          if ($LASTEXITCODE) { throw "init -Agents failed ($LASTEXITCODE)" }
+          # init -Agents -CopySkills copies the verifier with this machine's kit path; init -Agents enables the plugin instead of copying.
+          ./ci/godot/hyperdot.ps1 init -Agents -CopySkills -Project $game | Out-Null
+          if ($LASTEXITCODE) { throw "init -Agents -CopySkills failed ($LASTEXITCODE)" }
           $agent = Get-Content (Join-Path $game '.claude/agents/godot-verifier.md') -Raw
           if ($agent.Contains('${CLAUDE_PLUGIN_ROOT}') -or -not $agent.Contains('ci/godot/hyperdot.ps1')) { throw 'the copied agent should name the kit path' }
           $plugged = New-Item -ItemType Directory (Join-Path $env:RUNNER_TEMP 'plugin-game')
           Copy-Item examples/gdscript/project.godot, examples/gdscript/main.gd, examples/gdscript/main.tscn, examples/gdscript/score.gd $plugged
-          ./ci/godot/hyperdot.ps1 init -Plugin -Project $plugged | Out-Null
-          if ($LASTEXITCODE) { throw "init -Plugin failed ($LASTEXITCODE)" }
+          ./ci/godot/hyperdot.ps1 init -Agents -Project $plugged | Out-Null
+          if ($LASTEXITCODE) { throw "init -Agents failed ($LASTEXITCODE)" }
           $settings = Get-Content (Join-Path $plugged '.claude/settings.json') -Raw | ConvertFrom-Json -AsHashtable
-          if (-not $settings.enabledPlugins['hyperdot@hyperdot'] -or (Test-Path (Join-Path $plugged '.claude/skills'))) { throw "init -Plugin: $($settings | ConvertTo-Json -Depth 5)" }
+          if (-not $settings.enabledPlugins['hyperdot@hyperdot'] -or $settings.extraKnownMarketplaces['hyperdot'].source.source -ne 'github' -or (Test-Path (Join-Path $plugged '.claude/skills'))) { throw "init -Agents: $($settings | ConvertTo-Json -Depth 5)" }
           # The failing test run above set a non-zero exit code; GitHub's pwsh wrapper exits with $LASTEXITCODE.
           exit 0
       - name: The juice runner passes timely feedback and fails late feedback

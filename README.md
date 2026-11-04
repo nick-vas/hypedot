@@ -88,17 +88,15 @@ found and changes nothing; `doctor -Project <game>` checks the machine and the p
    $kit = 'C:\Tools\hyperdot\ci\godot\hyperdot.ps1'
    $game = 'C:\path\to\your\game'
    pwsh $kit doctor -Project $game
-   pwsh $kit init -Agents -Mcp godot-mcp -Project $game      # once: tests, CI, AGENTS.md, skills, editor bridge
+   pwsh $kit init -Agents -Mcp godot-mcp -Project $game      # once: tests, CI, AGENTS.md, the plugin (skills, subagents, hooks), editor bridge
    pwsh $kit test -Json -Quiet -Project $game                # every time: build + every test, one JSON result
    ```
    `ci/godot/tools/Initialize-HyperdotGame.ps1 -Game $game` does these steps, finds a local Godot of your game's version before downloading anything, and makes a second working copy for a parallel Claude chat ([docs/usage.md](docs/usage.md#1-add-the-kit-to-an-existing-game)).
    `init` adds a starter test, a GitHub workflow, `.gitignore` lines, test exclusions in the export presets, `AGENTS.md`,
-   `CLAUDE.md`, `docs/kit-notes.md`, the skills, both subagents and `.mcp.json`. It never overwrites a file and prints each change. The full list,
+   `CLAUDE.md`, `docs/kit-notes.md`, the Claude Code plugin in `.claude/settings.json` (the skills, both subagents and the hooks come from it; nothing is copied into the game) and `.mcp.json`. It never overwrites a file and prints each change. The full list,
    and how to keep the kit in the game as a submodule instead: [docs/usage.md](docs/usage.md).
 2. If you only want the tests, you are done: use `-Mcp` and the steps below only with an agent.
-3. With Claude Code, use the kit as a plugin instead of copying skills into the game: `init -Plugin -Project $game` writes the
-   game's `.claude/settings.json` so Claude Code loads the skills, subagents and Stop hook from your clone (a `git pull` there
-   updates every game). Or by hand: `/plugin marketplace add <your clone>`, then `/plugin install hyperdot@hyperdot`.
+3. With Claude Code the skills, subagents and hooks come from the plugin that `init -Agents` enabled in the game's `.claude/settings.json`; no skill is copied into the game (`-CopySkills` does that for a host without plugins). The plugin comes from this GitHub repository (`-PluginSource github`, the default; works in cloud sessions too; `claude plugin update hyperdot@hyperdot` fetches the newest commit on `main`) or from your clone (`-PluginSource local`: a `git pull` there updates every game). Skills are named `/hyperdot:game`, `/hyperdot:kit` and so on. Or by hand: `/plugin marketplace add nick-vas/hyperdot`, then `/plugin install hyperdot@hyperdot`.
 4. If you chose `-Mcp`, run the addon command `init` prints and enable the plugin in Godot.
 5. Open Claude Code in the game's folder and **start every session with `/game`**: it reads where the game stands (GDD,
    plan, tests, git), writes `plan/STATUS.md` and ends with the three best next tasks to pick from. Then ask the agent to

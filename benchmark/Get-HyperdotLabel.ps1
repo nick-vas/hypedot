@@ -84,7 +84,11 @@ $spec = Get-Content -LiteralPath $SpecPath -Raw | ConvertFrom-Json -AsHashtable
 $specHash = (Get-FileHash -LiteralPath $SpecPath -Algorithm SHA256).Hash.Substring(0, 12).ToLowerInvariant()
 $tasks = @($spec.tasks | ForEach-Object { $_.id })
 $expected = @{}; foreach ($t in $spec.tasks) { $expected[$t.id] = $t.expected }
-if (-not $Version) { $Version = (Get-Content -LiteralPath (Join-Path $root '.claude-plugin/plugin.json') -Raw | ConvertFrom-Json).version }
+# The plugin manifest declares no version (every commit on main is a new version of the plugin), so the label's default is the newest release in the changelog.
+if (-not $Version) {
+    foreach ($line in Get-Content -LiteralPath (Join-Path $root 'CHANGELOG.md')) { if ($line -match '\A## (?<v>[0-9]+\.[0-9]+\.[0-9]+[A-Za-z0-9.+-]*) - ') { $Version = $Matches.v; break } }
+    if (-not $Version) { throw 'No -Version given and CHANGELOG.md has no "## x.y.z - " heading to take it from' }
+}
 
 # One row per session, graded again from its saved answer. A unit is one run of the benchmark: one results.json, joined
 # with the results of the continuations of that run (summary.json meta.continues names the runs a continuation picks up),
