@@ -1,5 +1,5 @@
 # `help`: a Markdown reference of every command, skill and subagent (written to .godot/kit-help.md of the game, which no repository tracks, so a read-only command changes
-# nothing in the project; `init` puts a first copy in docs/kit-help.md), or the page of one. The text lives in docs/help.md, which the /kit skill shows through this command
+# nothing in the project), or the page of one. The text lives in docs/help.md, which the /kit skill shows through this command
 # too, so there is one source; a skill's or subagent's page adds the "when to use it" line of its own file. Needs no
 # project and no Godot.
 

@@ -1,7 +1,7 @@
 # Help
 
 What `hyperdot.ps1 help` and the `/kit` skill show: a Markdown page with a table each for the commands, skills and
-subagents, the skills in groups (written to `.godot/kit-help.md` of the game, a folder no repository tracks, so `help` changes nothing the game commits; `init -Agents` and `init -Plugin` put a first copy in `docs/kit-help.md`), and a short
+subagents, the skills in groups (written to `.godot/kit-help.md` of the game, a folder no repository tracks, so `help` changes nothing the game commits; `init` writes no copy of it into the game), and a short
 page for one of them (`hyperdot.ps1 help shot`, `/kit shot`). This file is the only source of that text. Each entry is a `###`
 heading with the name, one line saying what it does, then its page. A skill's or subagent's page also gets the "when to
 use it" line of its own file. `tests/Test-Help.ps1` fails when a command, skill or subagent has no entry here, or an entry
@@ -59,10 +59,10 @@ repository about them and creates it with gh only after a yes.
 ### init
 Wire the kit into a game: a starter test, a CI workflow pinned at @v1, .gitignore lines and export exclusions.
 
-    hyperdot.ps1 init [-Agents | -Plugin] [-Mcp godot-mcp] [-McpDiagnostics] [-McpAseprite <path>]
+    hyperdot.ps1 init [-Agents [-CopySkills] [-PluginSource github|local]] [-Mcp godot-mcp] [-McpDiagnostics] [-McpAseprite <path>]
 
--Agents adds AGENTS.md, CLAUDE.md, docs/kit-notes.md, docs/kit-help.md (the kit's help as one Markdown page), the skills and the subagents; -Plugin enables the kit as a Claude
-Code plugin instead of copying skills. It never overwrites a file and is safe to run again.
+-Agents adds AGENTS.md, CLAUDE.md and docs/kit-notes.md, and enables the kit as a Claude Code plugin in .claude/settings.json, which supplies the skills, the subagents and the hooks: nothing is copied into the game. The plugin comes from GitHub by default; -PluginSource local registers this kit's folder instead. -CopySkills copies the skills and subagents instead, for a host that loads no plugins, and refuses a game that already enables the plugin. -Plugin is the same as -Agents.
+It never overwrites a file and is safe to run again.
 
 ### plan
 The game's plan from concept to post-launch: the current phase, its gates, tasks and what to do next.

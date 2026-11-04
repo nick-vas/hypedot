@@ -183,10 +183,17 @@ param(
     [switch]$McpDiagnostics,
     # init: also register aseprite-mcp (an agent draws pixel art in Aseprite) for this Aseprite: the program or its folder.
     [string]$McpAseprite,
-    # init: also add AGENTS.md, CLAUDE.md, the agent skills and the verifier subagent.
+    # init: also add AGENTS.md, CLAUDE.md and docs/kit-notes.md, and enable this kit as a Claude Code plugin in .claude/settings.json, which
+    # supplies the skills, the subagents and the hooks. Nothing is copied into the game, so nothing goes stale there.
     [switch]$Agents,
-    # init: like -Agents, but enable this kit as a Claude Code plugin (skills, verifier, Stop hook) instead of copying skills.
+    # init: the same as -Agents (kept for scripts written before -Agents enabled the plugin).
     [switch]$Plugin,
+    # init: with -Agents, copy the skills and subagents into the game instead of enabling the plugin, for an agent host that loads no plugins.
+    # Not done when the game already enables the plugin: each skill would load twice and the copy would go stale.
+    [switch]$CopySkills,
+    # init: where the plugin comes from. github: this kit's GitHub repository (works on any machine and in cloud sessions; update with
+    # /plugin update). local: the folder this kit runs from, loaded in place (a git pull in it updates every game). Default: github.
+    [ValidateSet('github', 'local')][string]$PluginSource = 'github',
     # plan: status (default), init (create plan/plan.json), done (mark a manual gate done: -Id), reopen (undo done: -Id), add (a task: -Title),
     # move (a task to -Column: -Id), remove (delete a task: -Id), sync (mirror the tasks to a GitHub Project: -Board), link (a task to a GDD
     # -Feature or a project -Item: -Id).
@@ -248,6 +255,9 @@ Assert-KitArguments $MyInvocation.MyCommand.ScriptBlock.Ast.ParamBlock $PSBoundP
 # help needs no project: it is answered before one is looked for.
 if ($Topic -and $Command -notin 'help', 'telemetry') { Stop-GodotCi "'$Topic' is not a parameter of $Command; only help and telemetry take a name (help $Topic)" 'invalid-arguments' }
 if ($PSBoundParameters.ContainsKey('ReportIssue') -and $Command -ne 'doctor') { Stop-GodotCi '-ReportIssue is for doctor (it offers to file an issue about kit files that are not committed)' 'invalid-arguments' }
+foreach ($initOnly in 'CopySkills', 'PluginSource') {
+    if ($PSBoundParameters.ContainsKey($initOnly) -and $Command -ne 'init') { Stop-GodotCi "-$initOnly is for init (how the skills reach the game)" 'invalid-arguments' }
+}
 if ($PSBoundParameters.ContainsKey('Last') -and $Command -ne 'telemetry') { Stop-GodotCi '-Last is for telemetry (how many runs of each command to read)' 'invalid-arguments' }
 if ($Command -eq 'help') {
     Invoke-Help $Topic $Project
@@ -726,7 +736,7 @@ switch ($Command) {
     'doctor' { Invoke-Doctor $info -ReportIssue:$ReportIssue }
     'init' {
         Initialize-Project $info
-        if ($Agents -or $Plugin) { Add-AgentFiles $info $PSCommandPath ([bool]$Plugin) }
+        if ($Agents -or $Plugin -or $CopySkills) { Add-AgentFiles $info $PSCommandPath ([bool]$CopySkills) $PluginSource $PSBoundParameters.ContainsKey('PluginSource') }
         if ($Mcp -ne 'none' -or $McpDiagnostics -or $McpAseprite) { Add-McpConfig $info $Mcp ([bool]$McpDiagnostics) $McpAseprite }
         Write-CiLog "Done. Next: $(Format-KitCommand 'doctor'), then $(Format-KitCommand 'test')"
     }

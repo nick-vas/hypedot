@@ -124,14 +124,14 @@ The codes in [`docs/json.md`](json.md#error-codes), and the tests that raise the
 | `Audio.ps1` | 10/11 | `Test-Localization.ps1`, `Test-SelectJobs.ps1`, `Test-Audio.ps1`, `Test-ErrorCodes.ps1`, `Test-AssetManifest.ps1`, `Test-Addons.ps1`, `Test-Context.ps1`, `Test-DoctorFixture.ps1` and 6 more |
 | `BuildSize.ps1` | 4/4 | `Test-BuildSize.ps1`, `Test-SelectJobs.ps1`, `Test-ErrorCodes.ps1` |
 | `Common.ps1` | 46/53 | `Test-ErrorKeys.ps1`, `Test-Flaky.ps1`, `Test-BenchSweep.ps1`, `Test-GpuValidation.ps1`, `Test-Localization.ps1`, `Test-Palette.ps1`, `Test-Playthrough.ps1`, `Test-Soak.ps1` and 54 more |
-| `Context.ps1` | 8/9 | `Test-Context.ps1`, `Test-Help.ps1`, `Test-DoctorFixture.ps1`, `Test-Addons.ps1`, `Test-AssetManifest.ps1`, `Test-Audio.ps1`, `Test-ErrorCodes.ps1`, `Test-Flaky.ps1` and 5 more |
+| `Context.ps1` | 8/10 | `Test-Context.ps1`, `Test-Help.ps1`, `Test-DoctorFixture.ps1`, `Test-Addons.ps1`, `Test-AssetManifest.ps1`, `Test-Audio.ps1`, `Test-ErrorCodes.ps1`, `Test-Flaky.ps1` and 5 more |
 | `Credits.ps1` | 6/7 | `Test-Credits.ps1`, `Test-ErrorCodes.ps1` |
 | `Data.ps1` | 0/20 | `Test-Data.ps1` |
 | `Deck.ps1` | 3/3 | `Test-Deck.ps1` |
 | `Detect.ps1` | 11/12 | `Test-Addons.ps1`, `Test-Steam.ps1`, `Test-Detect.ps1`, `Test-Platforms.ps1`, `Test-ErrorCodes.ps1`, `Test-AssetManifest.ps1`, `Test-Audio.ps1`, `Test-BuildSize.ps1` and 37 more |
 | `Doctor.ps1` | 13/16 | `Test-Addons.ps1`, `Test-Steam.ps1`, `Test-SelectJobs.ps1`, `Test-DoctorFixture.ps1`, `Test-AssetManifest.ps1`, `Test-Audio.ps1`, `Test-Context.ps1`, `Test-ErrorCodes.ps1` and 5 more |
 | `Help.ps1` | 5/10 | `Test-Help.ps1`, `Test-ErrorCodes.ps1` |
-| `Init.ps1` | 10/12 | `Test-KitPaths.ps1`, `Test-UpdatePins.ps1`, `Test-ErrorCodes.ps1`, `Test-OldState.ps1`, `Test-Plan.ps1` |
+| `Init.ps1` | 10/13 | `Test-KitPaths.ps1`, `Test-UpdatePins.ps1`, `Test-ErrorCodes.ps1`, `Test-OldState.ps1`, `Test-Plan.ps1` |
 | `Juice.ps1` | 1/4 | `Test-JuiceLog.ps1`, `Test-AssetManifest.ps1`, `Test-ErrorKeys.ps1`, `Test-Flaky.ps1`, `Test-Handoffs.ps1`, `Test-Plan.ps1` |
 | `Layout.ps1` | 3/3 | `Test-Deck.ps1`, `Test-Layout.ps1` |
 | `Localization.ps1` | 19/22 | `Test-Localization.ps1`, `Test-Data.ps1`, `Test-Detect.ps1`, `Test-Addons.ps1`, `Test-AssetManifest.ps1`, `Test-Audio.ps1`, `Test-BenchHotspots.ps1`, `Test-BenchSweep.ps1` and 28 more |
@@ -142,7 +142,7 @@ The codes in [`docs/json.md`](json.md#error-codes), and the tests that raise the
 | `Platforms.ps1` | 1/1 | `Test-Platforms.ps1`, `Test-Addons.ps1`, `Test-AssetManifest.ps1`, `Test-Audio.ps1`, `Test-Context.ps1`, `Test-DoctorFixture.ps1`, `Test-ErrorCodes.ps1`, `Test-Flaky.ps1` and 5 more |
 | `Playtest.ps1` | 8/8 | `Test-Playtest.ps1` |
 | `Playthrough.ps1` | 3/3 | `Test-Playthrough.ps1` |
-| `Report.ps1` | 29/33 | `Test-ErrorKeys.ps1`, `Test-Flaky.ps1`, `Test-Localization.ps1`, `Test-ArchitectureFixtures.ps1`, `Test-Data.ps1`, `Test-Detect.ps1`, `Test-FailureDelta.ps1`, `Test-GitLabTemplate.ps1` and 25 more |
+| `Report.ps1` | 29/34 | `Test-ErrorKeys.ps1`, `Test-Flaky.ps1`, `Test-Localization.ps1`, `Test-ArchitectureFixtures.ps1`, `Test-Data.ps1`, `Test-Detect.ps1`, `Test-FailureDelta.ps1`, `Test-GitLabTemplate.ps1` and 25 more |
 | `Runners.ps1` | 7/7 | `Test-Flaky.ps1`, `Test-StaleTres.ps1`, `Test-Detect.ps1`, `Test-SelectJobs.ps1`, `Test-TestsNotRun.ps1`, `Test-ErrorCodes.ps1`, `Test-DotnetTempDir.ps1`, `Test-Flows.ps1` and 10 more |
 | `Setup.ps1` | 11/16 | `Test-DownloadFailed.ps1`, `Test-BenchSweep.ps1`, `Test-InstallLock.ps1`, `Test-GameVersion.ps1`, `Test-InstallAddon.ps1`, `Test-ReportPins.ps1`, `Test-SelectJobs.ps1`, `Test-TestsNotRun.ps1` and 34 more |
 | `Sfx.ps1` | 5/6 | `Test-SelectJobs.ps1`, `Test-Sfx.ps1` |
@@ -202,7 +202,7 @@ The codes in [`docs/json.md`](json.md#error-codes), and the tests that raise the
 | `console-cert` | `Test-Help.ps1`, `Test-Skills.ps1` |
 | `debug-tools` | `Test-Capture.ps1`, `Test-Help.ps1`, `Test-Skills.ps1` |
 | `determinism` | `Test-Help.ps1`, `Test-Skills.ps1` |
-| `game` | `Test-Help.ps1`, `Test-Skills.ps1` |
+| `game` | `Test-Help.ps1`, `Test-Plan.ps1`, `Test-Skills.ps1` |
 | `game-ai` | `Test-Help.ps1`, `Test-Skills.ps1` |
 | `game-audio` | `Test-Help.ps1`, `Test-Skills.ps1` |
 | `game-data` | `Test-Help.ps1`, `Test-Skills.ps1` |
@@ -254,7 +254,7 @@ The codes in [`docs/json.md`](json.md#error-codes), and the tests that raise the
 | Subagent | Covered by |
 |---|---|
 | `godot-architect` | `Test-Handoffs.ps1`, `Test-Help.ps1` |
-| `godot-verifier` | `Test-Context.ps1`, `Test-Handoffs.ps1`, `Test-Help.ps1`, `Test-SelectJobs.ps1`, self-test.yml init: Agent efficiency |
+| `godot-verifier` | `Test-Context.ps1`, `Test-Handoffs.ps1`, `Test-Help.ps1`, `Test-Plan.ps1`, `Test-SelectJobs.ps1`, self-test.yml init: Agent efficiency |
 
 ## Workflow jobs, actions, hooks and the GitLab template
 

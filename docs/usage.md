@@ -10,7 +10,7 @@ repository or your exported builds (`init` adds only the files listed below):
 git clone https://github.com/nick-vas/hyperdot C:\Tools\hyperdot
 pwsh C:\Tools\hyperdot\ci\godot\hyperdot.ps1 init -Project 'C:\path\to\your\game'
 ```
-With the kit outside, `init -Agents` writes its full path into `AGENTS.md`, so agents call it from there.
+With the kit outside, `init -Agents` writes its full path into `AGENTS.md`, so agents call it from there (the skills come from the plugin; the path only names the script `AGENTS.md`'s commands run, so keep that clone on the version you want).
 
 To share one pinned version with everyone on the game's repository instead, add it as a submodule:
 `git submodule add https://github.com/nick-vas/hyperdot tools/hyperdot`. Its folders carry a `.gdignore` file, so
@@ -22,14 +22,19 @@ keep its `.gdignore`: without it, the kit's `.gd` tool scripts (ten in `ci/godot
 - `solution_directory` in `project.godot` when your `.sln` lives outside the project folder;
 - `.github/workflows/hyperdot.yml`.
 
-With `-Agents` or `-Plugin` it also writes `AGENTS.md`, `CLAUDE.md`, `docs/kit-help.md` (every command, skill and subagent as one
-Markdown page; `/kit` rewrites and shows it) and `docs/kit-notes.md` (where the agent notes each
-time the kit got in the way). Start every Claude Code session in the game with `/game`: it reads where the game stands and
+With `-Agents` it also writes `AGENTS.md`, `CLAUDE.md` and `docs/kit-notes.md` (where the agent notes each
+time the kit got in the way), and enables the kit as a Claude Code plugin in `.claude/settings.json`. The plugin supplies the
+skills, the subagents and the hooks, so nothing is copied into the game and nothing there goes stale; the skills are named
+`/hyperdot:game` and so on. It comes from GitHub (`-PluginSource github`, the default: any machine, cloud sessions; changes arrive
+with a release, `claude plugin update hyperdot@hyperdot`) or from the kit's folder (`-PluginSource local`: a `git pull` there updates every
+game). `-CopySkills` copies the skills and subagents instead, for a host that loads no plugins; it is refused in a game that
+already enables the plugin, because each skill would load twice. `docs/kit-help.md` is no longer written: `help` and `/kit` write
+`.godot/kit-help.md`, which no repository tracks. Start every Claude Code session in the game with `/game`: it reads where the game stands and
 ends with the next tasks to pick from ([plan.md](plan.md#the-gdd-status-and-game)).
 
 **One script for the whole setup, and a second working copy for a parallel chat.** `ci/godot/tools/Initialize-HyperdotGame.ps1`
 checks the game's Git repository, git and the .NET 8 SDK, finds the kit, runs `doctor`, adds the kit on a branch
-(`init -Plugin`), runs the tests, commits and merges the branch, and makes a Git worktree on a new branch so a second
+(`init -Plugin`, the same as `init -Agents`), runs the tests, commits and merges the branch, and makes a Git worktree on a new branch so a second
 Claude Code chat can work on the game while you keep working in the editor:
 ```powershell
 pwsh C:\Tools\hyperdot\ci\godot\tools\Initialize-HyperdotGame.ps1 -Game 'C:\path\to\your\game' -DryRun   # prints what it would do
