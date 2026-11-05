@@ -321,7 +321,7 @@ workflow's token start no other workflow. A change to `release.yml` or its scrip
 ```
 pwsh tests/Test-SelectJobs.ps1                                   # what a change would run (no Godot)
 pwsh .github/scripts/Select-Jobs.ps1 -EventName pull_request -Base <sha> -Json   # for the current checkout
-for t in tests/Test-*.ps1; do pwsh $t; done                      # every self-test (several need Godot, a display or ffmpeg: see AGENTS.md)
+for t in tests/Test-*.ps1; do pwsh $t; done                      # every self-test (several need Godot, a display or ffmpeg: see docs/self-tests.md)
 ```
 
-`AGENTS.md` has the table of what each self-test needs. `gh workflow run self-test.yml` starts the full run.
+`docs/self-tests.md` has the table of what each self-test needs. `gh workflow run self-test.yml` starts the full run.

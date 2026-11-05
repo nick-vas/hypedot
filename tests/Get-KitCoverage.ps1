@@ -6,7 +6,7 @@
 #   functions   every function in hyperdot.ps1 and lib/*.ps1
 #   errorCodes  every code in docs/json.md's table, raised by a run (codes in the code but not the table are listed too)
 #   tools       ci/godot/tools files a kit function starts (.gd, .cs, .mjs): reached when that function was entered
-#   selfTests   tests/Test-*.ps1 run by .github/workflows/self-test.yml and listed in AGENTS.md
+#   selfTests   tests/Test-*.ps1 run by .github/workflows/self-test.yml and listed in docs/self-tests.md
 # -Min<surface> fail the run when a surface's percentage falls below it, so coverage cannot drop unnoticed.
 param(
     [Parameter(Mandatory)][string[]]$From,
@@ -86,7 +86,7 @@ $toolCallers = @{}
 foreach ($tool in $tools) { $toolCallers[$tool] = @($libText.Keys | Where-Object { $libText[$_].Contains($tool) }) }
 
 $workflow = Get-Content -LiteralPath (Join-Path $root '.github/workflows/self-test.yml') -Raw
-$agents = Get-Content -LiteralPath (Join-Path $root 'AGENTS.md') -Raw
+$agents = Get-Content -LiteralPath (Join-Path $root 'docs/self-tests.md') -Raw
 $selfTests = @(Get-ChildItem -LiteralPath $PSScriptRoot -Filter 'Test-*.ps1' -File | ForEach-Object { $_.Name })
 
 $report = [ordered]@{
