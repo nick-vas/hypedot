@@ -27,7 +27,7 @@ $agentNames = @($agentFiles | ForEach-Object BaseName)
 $maxBytes = 16KB; $warnBytes = 15.5KB
 # AGENTS.md is loaded into every session of every game: only what an agent cannot infer belongs there (context files
 # that restate the obvious add about 20% cost and no success; see docs/research.md).
-$agentsTemplateMaxBytes = 4KB
+$agentsTemplateMaxBytes = 3KB
 
 # --- Ground truth the skills are checked against ---------------------------------------------------------
 $entry = Join-Path $Root 'ci/godot/hyperdot.ps1'
