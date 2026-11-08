@@ -14,7 +14,7 @@ ones); the pull requests and `CHANGELOG.md` are the record of what was built. Th
 
 Still open from phases 1 and 2:
 
-- Schedule the monthly `kit-review` as a Claude scheduled task. The skill exists; nothing runs it yet.
+- Schedule the monthly `kit-review` as a Claude scheduled task. The skill exists and files its proposals as issues in this repository (nobody has to answer it); nothing runs it yet.
 - Schedule the weekly review on the owner's machine: Friday night, Athens time, after the canary.
 - A lesson from a game reaching the kit as a merged pull request through `/retro`.
 - The canary's open issue #89: gdUnit4.test.adapter 3.1.1 does not pass. (Its green path has run too: version bump #88.)
