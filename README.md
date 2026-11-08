@@ -228,7 +228,7 @@ benchmark and evals that measure the kit. The sections after the tables are
 
 | Capability | Command | Result |
 |---|---|---|
-| **Improve the kit** | `/retro`, `/kit-review`, `evals/`, `docs/kit-notes.md` | lessons with evidence, and the game's one-line notes each time the kit got in the way, become kit pull requests you approve, each measured with and without the plugin |
+| **Improve the kit** | `/retro`, `/kit-review`, `evals/`, `docs/kit-notes.md` | lessons with evidence, and the game's one-line notes each time the kit got in the way, become kit pull requests you approve, each measured with and without the plugin; `/kit-review` files its findings as issues in the kit's repository |
 | **Measure agent cost** | `benchmark/Invoke-TokenBenchmark.ps1` | tokens, cost and time per task, as medians over repeated runs |
 
 ## How the pieces fit

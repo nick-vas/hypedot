@@ -175,7 +175,7 @@ Turn a work session's mistakes and the game's kit notes into lessons and kit pul
 The week's written review: done, health, phase, risks, next week's tasks and proposed kit changes.
 
 ### kit-review
-The monthly review of the kit: which parts cost the most or help the least, and at most three cuts or changes.
+The monthly review of the kit: which parts cost the most or help the least, filed as at most three issues (cuts or changes) in the kit's repository; it changes nothing locally.
 
 ### godot-test-loop
 Test first: a failing test, the change, then the whole suite; choosing and pinning test frameworks.
