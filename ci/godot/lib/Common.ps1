@@ -533,19 +533,43 @@ function Add-OutputGdignore([string]$Dir, [string]$ProjectDir) {
     Write-CiLog "Added $($marker): the output folder is inside the project"
 }
 
+$script:PrunedDirSet = [System.Collections.Generic.HashSet[string]]::new([string[]]$script:PrunedDirs, [System.StringComparer]::OrdinalIgnoreCase)
+
+# The files under a folder that match a filter, folder by folder (breadth first), each folder's files and subfolders by name.
+# Subfolders that are never the user's own are skipped: the PrunedDirs, every folder whose name starts with a dot (.git, .godot,
+# .claude, whose worktrees are whole copies of the game, as Godot skips them too), and a folder with a .gdignore file (this kit's
+# own folder has one), the way Godot does. Only subfolders are checked: the root is where the search was asked to look.
+# Walked with .NET's enumeration, not Get-ChildItem: detect, plan and status walk the project half a dozen times, and the
+# pipeline per folder made each walk about a second for 4,500 files (tens of seconds in all). Like Get-ChildItem without -Force,
+# it skips hidden and system entries and folders it cannot read.
 function Find-ProjectFiles {
     param([string]$Root, [string]$Filter)
-    $queue = [System.Collections.Generic.Queue[string]]::new()
-    $queue.Enqueue((Resolve-Path -LiteralPath $Root).Path)
+    $options = [System.IO.EnumerationOptions]::new()
+    $options.MatchCasing = [System.IO.MatchCasing]::CaseInsensitive      # as -Filter was: *.CS finds a.cs on Linux too
+    $comparer = [System.StringComparer]::CurrentCultureIgnoreCase
+    $queue = [System.Collections.Generic.Queue[System.IO.DirectoryInfo]]::new()
+    $queue.Enqueue([System.IO.DirectoryInfo]::new((Resolve-Path -LiteralPath $Root).Path))
     while ($queue.Count -gt 0) {
         $dir = $queue.Dequeue()
-        Get-ChildItem -LiteralPath $dir -File -Filter $Filter -ErrorAction SilentlyContinue | Sort-Object Name
-        Get-ChildItem -LiteralPath $dir -Directory -ErrorAction SilentlyContinue | Sort-Object Name |
-            Where-Object { $_.Name -notin $script:PrunedDirs -and $_.Name -notlike 'gdunit4_testadapter*' } |
-            # A folder with a .gdignore file is not part of the Godot project (this kit's own folder has one), so skip it
-            # the way Godot does. Only subfolders are checked: the root is where the search was asked to look.
-            Where-Object { -not (Test-Path -LiteralPath (Join-Path $_.FullName '.gdignore')) } |
-            ForEach-Object { $queue.Enqueue($_.FullName) }
+        $files = [System.IO.FileInfo[]]@($dir.EnumerateFiles($Filter, $options))
+        if ($files.Count -gt 1) {
+            $names = [string[]]::new($files.Count)
+            for ($i = 0; $i -lt $files.Count; $i++) { $names[$i] = $files[$i].Name }
+            [System.Array]::Sort($names, $files, $comparer)
+        }
+        $files
+        $subs = [System.IO.DirectoryInfo[]]@($dir.EnumerateDirectories('*', $options))
+        if ($subs.Count -gt 1) {
+            $names = [string[]]::new($subs.Count)
+            for ($i = 0; $i -lt $subs.Count; $i++) { $names[$i] = $subs[$i].Name }
+            [System.Array]::Sort($names, $subs, $comparer)
+        }
+        foreach ($sub in $subs) {
+            $name = $sub.Name
+            if ($name.StartsWith('.') -or $script:PrunedDirSet.Contains($name) -or $name.StartsWith('gdunit4_testadapter', [System.StringComparison]::OrdinalIgnoreCase)) { continue }
+            if ([System.IO.File]::Exists((Join-Path $sub.FullName '.gdignore'))) { continue }
+            $queue.Enqueue($sub)
+        }
     }
 }
 
@@ -598,10 +622,20 @@ function Get-NewProjectChanges($Before, $After) {
     })
 }
 
+# A repository found stays found for the run (status and plan ask for it a dozen times), as long as its .git is still there; a miss is
+# never remembered, since a command can start a repository.
+$script:GitRootCache = @{}
 function Get-GitRoot([string]$Dir) {
+    if ($script:GitRootCache.ContainsKey($Dir)) {
+        $cached = $script:GitRootCache[$Dir]
+        $marker = Join-Path $cached '.git'
+        if ([System.IO.Directory]::Exists($marker) -or [System.IO.File]::Exists($marker)) { return $cached }
+        $script:GitRootCache.Remove($Dir)
+    }
     if (-not (Get-Command git -ErrorAction SilentlyContinue)) { return $null }
     $root = & git -C $Dir rev-parse --show-toplevel 2>$null
     if ($LASTEXITCODE -ne 0 -or -not $root) { return $null }
+    $script:GitRootCache[$Dir] = $root
     return $root
 }
 

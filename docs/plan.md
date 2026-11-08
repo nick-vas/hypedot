@@ -78,6 +78,7 @@ Day-to-day work lives in `plan.json` `tasks`, edited with commands so an agent c
 pwsh ci/godot/hyperdot.ps1 plan -Do add -Title "Paddle feel pass" -Column todo
 pwsh ci/godot/hyperdot.ps1 plan -Do move -Id t1 -Column doing      # refused past wipLimit
 pwsh ci/godot/hyperdot.ps1 plan -Do move -Id t1 -Column "To Do"    # a column name works too
+pwsh ci/godot/hyperdot.ps1 plan -Do move -Id t1,t2,t3 -Column done  # several in one call: all move or none (each call reads the project)
 pwsh ci/godot/hyperdot.ps1 plan -Do remove -Id t1                  # delete a task
 ```
 

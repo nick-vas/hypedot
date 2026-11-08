@@ -20,7 +20,11 @@ function Get-SuggestedCommands($Table, $Runs, [object[]]$Files, $Stage, [datetim
         if ($null -ne $from -and ($null -eq $Stage -or $Stage -lt $from)) { continue }
         $last = $Runs.Contains($rule.command) ? $Runs[$rule.command] : $null
         $patterns = @($rule.PSObject.Properties['files'] ? $rule.files : @())
-        $matching = @(if ($patterns.Count) { $Files | Where-Object { $name = $_.Name; @($patterns | Where-Object { $name -like $_ }).Count -gt 0 } })
+        # A loop and compiled wildcards, not a pipeline per file and pattern: a game has thousands of files and a rule several patterns.
+        $wild = @($patterns | ForEach-Object { [System.Management.Automation.WildcardPattern]::new([string]$_, [System.Management.Automation.WildcardOptions]::IgnoreCase) })
+        $matching = @(foreach ($file in $Files) {
+            foreach ($w in $wild) { if ($w.IsMatch($file.Name)) { $file; break } }
+        })
         $fire = switch ($rule.trigger) {
             'never-run' { -not $last -and ($patterns.Count -eq 0 -or $matching.Count -gt 0) }
             'failed-last' { $last -and -not $last.ok }

@@ -95,8 +95,10 @@ function Find-FeatureTags($Info) {
     $tags = @{}
     foreach ($filter in '*.gd', '*.cs', '*.flow.json', 'playthrough.json', '*.stub.json') {
         foreach ($file in @(Find-ProjectFiles -Root $root -Filter $filter)) {
+            # Most files carry no tag: one read each, and only a file that has one is read line by line (a game has hundreds of scripts).
+            if (-not [System.IO.File]::ReadAllText($file.FullName).Contains('GDD:')) { continue }
             $n = 0
-            foreach ($line in Get-Content -LiteralPath $file.FullName) {
+            foreach ($line in [System.IO.File]::ReadLines($file.FullName)) {
                 $n++
                 foreach ($m in [regex]::Matches($line, '\bGDD:([FS]\d+)\b')) {
                     $id = $m.Groups[1].Value
@@ -172,8 +174,9 @@ function Get-ProjectInventory($Info) {
     $scripts = @(@(Find-ProjectFiles -Root $project -Filter '*.gd') + @(Find-ProjectFiles -Root $project -Filter '*.cs'))
     $todos = [System.Collections.Generic.List[object]]::new()
     foreach ($file in $scripts | Where-Object { -not (& $isTest $_) }) {
+        if ([System.IO.File]::ReadAllText($file.FullName) -notmatch '\b(TODO|FIXME|HACK)\b') { continue }      # one read; only a file with a marker is read line by line
         $n = 0
-        foreach ($line in Get-Content -LiteralPath $file.FullName) {
+        foreach ($line in [System.IO.File]::ReadLines($file.FullName)) {
             $n++
             if ($line -match '\b(TODO|FIXME|HACK)\b[:\s]*(?<t>.*)$') {
                 $todos.Add([ordered]@{ file = (ConvertTo-ResPath $project $file.FullName); line = $n; text = $Matches.t.Trim() })

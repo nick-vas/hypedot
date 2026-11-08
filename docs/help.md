@@ -69,7 +69,7 @@ The game's plan from concept to post-launch: the current phase, its gates, tasks
 
     hyperdot.ps1 plan -Json
     hyperdot.ps1 plan -Do init [-Profile jam] | done -Id <gate> | reopen -Id <gate> | add -Title <text> [-Feature F3]
-    hyperdot.ps1 plan -Do move -Id <task> -Column doing | remove -Id <task> | link | sync -Board @me
+    hyperdot.ps1 plan -Do move -Id <task>[,<task>...] -Column doing | remove -Id <task> | link | sync -Board @me
 
 The plan is plan/plan.json; -Profile jam sizes it in days for a game jam. -Column takes a column id or the project column
 it maps to ("To Do"). move refuses doing past the work-in-progress limit. sync (a GitHub Project, through the gh CLI signed in

@@ -694,20 +694,27 @@ function Invoke-Plan($Info, [string]$Action, [string]$Id, [string]$Game, [string
             Set-JsonField task (Get-PlanTaskJson $task)
         }
         'move' {
-            if (-not $Id -or -not $Column) { Stop-GodotCi 'plan -Do move needs -Id <task id> and -Column' 'invalid-arguments' }
+            if (-not $Id -or -not $Column) { Stop-GodotCi 'plan -Do move needs -Id <task id> (several: t1,t2,t3) and -Column' 'invalid-arguments' }
             $plan = Read-Plan $path
             $column = Resolve-PlanColumn $plan $Column
-            $task = @($plan.tasks) | Where-Object { $_.id -eq $Id } | Select-Object -First 1
-            if (-not $task) { Stop-GodotCi "No task '$Id' in $path" 'unknown-task' }
-            $doing = @($plan.tasks | Where-Object { $_.column -eq 'doing' -and $_.id -ne $Id }).Count
-            if ($column -eq 'doing' -and $doing -ge $plan.wipLimit) {
-                Stop-GodotCi "$doing task(s) already in 'doing' (limit $($plan.wipLimit)). Finish or move one first." 'wip-limit'
+            # Several tasks in one call: each plan command starts the kit and reads the project, so moving thirteen tasks one by
+            # one took minutes. All of them move or none does.
+            $ids = @($Id -split '[,\s]+' | Where-Object { $_ } | Select-Object -Unique)
+            $moving = @(foreach ($one in $ids) {
+                $found = @($plan.tasks) | Where-Object { $_.id -eq $one } | Select-Object -First 1
+                if (-not $found) { Stop-GodotCi "No task '$one' in $path" 'unknown-task' }
+                $found
+            })
+            $doing = @($plan.tasks | Where-Object { $_.column -eq 'doing' -and $_.id -notin $ids }).Count
+            if ($column -eq 'doing' -and $doing + $moving.Count -gt $plan.wipLimit) {
+                Stop-GodotCi "$doing task(s) already in 'doing' (limit $($plan.wipLimit))$(if ($moving.Count -gt 1) { ", and $($moving.Count) are being moved there" }). Finish or move one first." 'wip-limit'
             }
-            $task.column = $column
+            foreach ($task in $moving) { $task.column = $column }
             Save-Plan $plan $path
             Write-PlanMarkdown $plan (Get-PlanState $plan $Info) (Join-Path $dir 'PLAN.md')
-            Write-CiLog "Moved $Id to $column"
-            Set-JsonField task (Get-PlanTaskJson $task)
+            Write-CiLog "Moved $($ids -join ', ') to $column"
+            Set-JsonField task (Get-PlanTaskJson $moving[0])
+            Set-JsonField movedTasks @($moving | ForEach-Object { Get-PlanTaskJson $_ })
         }
         'remove' {
             # Deletes a task. Its project item, if it has one, is archived by the next plan -Do sync (project.toArchive).
