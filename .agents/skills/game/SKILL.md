@@ -85,8 +85,8 @@ the `warnings` worth acting on; the `decisions` still `Proposed`, which wait for
 
 Every feature that is not proven and not `won't` needs a task:
 `plan -Do add -Title "<feature> - <next step>" -Feature F3 -Column backlog`. A proven feature's tasks go to `done`
-(`plan -Do move -Id t3 -Column done`). `plan -Do move` refuses `doing` past the work-in-progress limit; finish or move
-something back instead. A task for a feature the user dropped goes with `plan -Do remove -Id t3`.
+(`plan -Do move -Id t3 -Column done`; several at once as `-Id t3,t4,t5`, one call instead of three). `plan -Do move` refuses
+`doing` past the work-in-progress limit; finish or move something back instead. A task for a feature the user dropped goes with `plan -Do remove -Id t3`.
 
 ## 5. The GitHub Project
 

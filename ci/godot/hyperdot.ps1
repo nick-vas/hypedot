@@ -199,7 +199,7 @@ param(
     # -Feature or a project -Item: -Id).
     [ArgumentCompletions('status', 'init', 'done', 'reopen', 'add', 'move', 'remove', 'sync', 'link')]
     [string]$Do = 'status',
-    # plan -Do done|reopen: the gate, e.g. prototype.loop. plan -Do move|remove|link: the task id.
+    # plan -Do done|reopen: the gate, e.g. prototype.loop. plan -Do move|remove|link: the task id (move: several as t1,t2,t3).
     [string]$Id,
     # plan -Do add: the task title.
     [string]$Title,

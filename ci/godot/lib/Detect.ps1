@@ -49,7 +49,7 @@ function Get-GodotVersionFromProject([string]$ProjectDir) {
 
 function Test-ContainsText([System.IO.FileInfo[]]$Files, [string]$Pattern) {
     foreach ($file in $Files) {
-        if ((Get-Content -LiteralPath $file.FullName -Raw) -match $Pattern) { return $true }
+        if ([System.IO.File]::ReadAllText($file.FullName) -match $Pattern) { return $true }
     }
     return $false
 }
@@ -57,7 +57,7 @@ function Test-ContainsText([System.IO.FileInfo[]]$Files, [string]$Pattern) {
 # The scene whose script calls GoTest.RunTests, or '' for the main scene.
 function Find-GoDotTestScene([string]$ProjectDir) {
     $script = Find-ProjectFiles -Root $ProjectDir -Filter '*.cs' |
-        Where-Object { (Get-Content -LiteralPath $_.FullName -Raw) -match 'GoTest\.RunTests' } | Select-Object -First 1
+        Where-Object { [System.IO.File]::ReadAllText($_.FullName).Contains('GoTest.RunTests') } | Select-Object -First 1
     if (-not $script) { return '' }
     $res = ConvertTo-ResPath $ProjectDir $script.FullName
     $scene = Find-ProjectFiles -Root $ProjectDir -Filter '*.tscn' |
@@ -68,7 +68,7 @@ function Find-GoDotTestScene([string]$ProjectDir) {
 
 function Get-GutTestFiles([string]$ProjectDir) {
     Find-ProjectFiles -Root $ProjectDir -Filter '*.gd' |
-        Where-Object { (Get-Content -LiteralPath $_.FullName -Raw) -match '(?m)^extends\s+GutTest\b' }
+        Where-Object { [System.IO.File]::ReadAllText($_.FullName) -match '(?m)^extends\s+GutTest\b' }
 }
 
 function Get-ExportPresets([string]$ProjectDir) {

@@ -498,6 +498,27 @@ try {
     Remove-Item -LiteralPath $session -Recurse -Force -ErrorAction SilentlyContinue
 }
 
+# plan -Do move takes several ids in one call (each call starts the kit and reads the project): all move, or none does.
+$multi = Join-Path ([IO.Path]::GetTempPath()) "plan-multi-$([guid]::NewGuid().ToString('N').Substring(0, 8))"
+try {
+    New-Item -ItemType Directory -Force $multi | Out-Null
+    Set-Content -LiteralPath (Join-Path $multi 'project.godot') -Value "config_version=5`n`n[application]`n`nconfig/name=`"Multi`"`n"
+    pwsh -NoProfile -NonInteractive -File $ci plan -Do init -Project $multi *> $null
+    $ids = @(foreach ($n in 1..4) { (pwsh -NoProfile -NonInteractive -File $ci plan -Do add -Title "Task $n" -Json -Project $multi 2>$null | ConvertFrom-Json).task.id })
+    $d = pwsh -NoProfile -NonInteractive -File $ci plan -Do move -Id ($ids[0..2] -join ',') -Column done -Json -Project $multi 2>$null | ConvertFrom-Json
+    Assert-True ($d.ok -and @($d.movedTasks).Count -eq 3 -and @($d.movedTasks | Where-Object column -ne 'done').Count -eq 0 -and $d.task.id -eq $ids[0]) "plan -Do move -Id t1,t2,t3 moves all three in one call: $(if ($d.ok) { 'ok' } else { $d.error.message })"
+    Assert-True (@($d.tasks | Where-Object { $_.column -eq 'done' }).Count -eq 3 -and ($d.tasks | Where-Object id -eq $ids[3]).column -eq 'backlog') 'the fourth task stays where it was'
+    $d = pwsh -NoProfile -NonInteractive -File $ci plan -Do move -Id "$($ids[3]),t999" -Column todo -Json -Project $multi 2>$null | ConvertFrom-Json
+    $after = pwsh -NoProfile -NonInteractive -File $ci plan -Json -Project $multi 2>$null | ConvertFrom-Json
+    Assert-True (-not $d.ok -and $d.error.code -eq 'unknown-task' -and ($after.tasks | Where-Object id -eq $ids[3]).column -eq 'backlog') 'an unknown id in the list refuses the whole move (unknown-task) and moves none'
+    $limit = (Get-Content -LiteralPath (Join-Path $multi 'plan/plan.json') -Raw | ConvertFrom-Json).wipLimit
+    $d = pwsh -NoProfile -NonInteractive -File $ci plan -Do move -Id ($ids -join ',') -Column doing -Json -Project $multi 2>$null | ConvertFrom-Json
+    $after = pwsh -NoProfile -NonInteractive -File $ci plan -Json -Project $multi 2>$null | ConvertFrom-Json
+    Assert-True ($ids.Count -gt $limit -and -not $d.ok -and $d.error.code -eq 'wip-limit' -and @($after.tasks | Where-Object { $_.column -eq 'doing' }).Count -eq 0) "more tasks than the work-in-progress limit ($limit) is refused as a whole (wip-limit)"
+} finally {
+    Remove-Item -LiteralPath $multi -Recurse -Force -ErrorAction SilentlyContinue
+}
+
 if ($failures.Count) { throw "$($failures.Count) plan check(s) failed" }
 Write-Host 'plan self-test passed'
 # One kit run failed on purpose (the refused gate); GitHub's pwsh wrapper would exit with its code.

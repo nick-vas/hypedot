@@ -1,6 +1,6 @@
 #!/usr/bin/env pwsh
 # Self-test of project detection: which solution a C# game builds and tests with (Find-Solution), and the GoDotTest
-# scene. Copies of the C# example's solution in temporary folders, with and without git; runs without Godot or .NET.
+# scene, and the project file walk (Find-ProjectFiles: order, pruned folders, case). Copies of the C# example's solution in temporary folders, with and without git; runs without Godot or .NET.
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot
@@ -105,6 +105,30 @@ EndProject
     $out = & pwsh -NoProfile -NonInteractive -File (Join-Path $root 'ci/godot/hyperdot.ps1') detect -Json -Project $none 2>$null
     $detected = ($out -join "`n") | ConvertFrom-Json
     if ($detected.ok) { $failures += '-Project at a folder with no project.godot below it should still fail' }
+
+    # The project file walk (Find-ProjectFiles): each folder's files by name (not by case), then its subfolders, breadth first. Folders that are never the
+    # game's own are skipped: addons, bin, obj, test-results, node_modules, gdunit4_testadapter*, one with a .gdignore, and every dot folder (.git, .godot,
+    # .claude, whose worktrees are whole copies of the game: they once showed up as the game's own architecture warnings). The filter ignores case and a
+    # name with brackets is a name, not a wildcard.
+    $walk = Join-Path $dir 'walk'
+    foreach ($rel in 'a.cs', 'B.cs', 'c.cs', 'sub/y.cs', 'sub/X.cs', 'sub/deep/d.cs', 'Zed/z.cs', '[odd]/e.cs', 'Notes.TXT', 'addons/x/skip.cs', 'bin/skip.cs', 'obj/skip.cs', 'test-results/skip.cs',
+        'node_modules/skip.cs', 'gdunit4_testadapter_x/skip.cs', 'ignored/skip.cs', '.claude/worktrees/w/Scripts/Bad.cs', '.godot/skip.cs', '.git/skip.cs') {
+        $file = Join-Path $walk $rel
+        [System.IO.Directory]::CreateDirectory((Split-Path $file)) | Out-Null
+        [System.IO.File]::WriteAllText($file, '')
+    }
+    [System.IO.File]::WriteAllText((Join-Path $walk 'ignored/.gdignore'), '')
+    $seen = @(Find-ProjectFiles -Root $walk -Filter '*.cs' | ForEach-Object { [System.IO.Path]::GetRelativePath($walk, $_.FullName) -replace '\\', '/' })
+    $kept = @($seen | Where-Object { $_ -notlike '`[odd`]/*' })
+    $expected = 'a.cs', 'B.cs', 'c.cs', 'sub/X.cs', 'sub/y.cs', 'Zed/z.cs', 'sub/deep/d.cs'
+    # root files, then each subfolder in turn (sub, Zed: by name, not by case), then the next level; [odd] sorts among them by the culture's rules
+    if (($kept -join ',') -ne ($expected -join ',')) { $failures += "the file walk should give '$($expected -join ', ')', got '$($kept -join ', ')'" }
+    if ('[odd]/e.cs' -notin $seen) { $failures += "a folder named [odd] is a folder, not a wildcard: $($seen -join ', ')" }
+    if (@($seen | Where-Object { $_ -match 'skip|Bad' }).Count -ne 0) { $failures += "the file walk should skip pruned, .gdignore and dot folders, got '$($seen -join ', ')'" }
+    $txt = @(Find-ProjectFiles -Root $walk -Filter '*.txt' | ForEach-Object Name)
+    if (($txt -join ',') -ne 'Notes.TXT') { $failures += "the filter ignores case: *.txt should find Notes.TXT, got '$($txt -join ', ')'" }
+    $all = @(Find-ProjectFiles -Root $walk -Filter '*' | ForEach-Object Name)
+    if ('Notes.TXT' -notin $all -or 'Bad.cs' -in $all) { $failures += "* should list every kept file and none of the skipped: $($all -join ', ')" }
 } finally {
     Remove-Item -LiteralPath $dir -Recurse -Force -ErrorAction SilentlyContinue
 }
