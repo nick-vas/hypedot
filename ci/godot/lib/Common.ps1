@@ -395,6 +395,31 @@ function Select-GodotErrors([string[]]$Lines) {
     return $errors
 }
 
+# Errors Godot's own C# bindings log when a managed wrapper is collected under the engine ("Handle is not initialized." from
+# SwapGCHandleForType, godotengine/godot#124587). Whatever was running when one was logged did not cause it: a flow in progress has not failed
+# because of it, and a rerun usually passes. The lines under an error (its managed stack trace) can name the bindings when its first line does not.
+$script:EngineInternalPattern = 'Handle is not initialized|\bSwapGCHandleForType\b|\bGCHandle\b|\bScriptManagerBridge\b'
+
+# Select-GodotErrors, with the engine's own errors told apart: Own are the project's errors, Engine the bindings' (see EngineInternalPattern).
+function Split-GodotErrors([string[]]$Lines) {
+    $pattern = $script:GodotErrorPattern
+    $ignoreRegex = Get-IgnoredErrorsRegex
+    $clean = @($Lines | ForEach-Object { $_ -replace "`e\[[0-9;]*m", '' })
+    $own = @(); $engine = @()
+    for ($i = 0; $i -lt $clean.Count; $i++) {
+        $line = $clean[$i]
+        if ($line -cnotmatch $pattern) { continue }
+        if ($line -match $ignoreRegex) { Write-CiLog "Ignored known engine noise: $line"; continue }
+        $block = $line
+        for ($j = $i + 1; $j -lt [math]::Min($clean.Count, $i + 12); $j++) {
+            if ($clean[$j] -notmatch '^\s' -or $clean[$j] -cmatch $pattern) { break }
+            $block += "`n" + $clean[$j]
+        }
+        if ($block -match $script:EngineInternalPattern) { $engine += $line } else { $own += $line }
+    }
+    return [pscustomobject]@{ Own = @($own); Engine = @($engine) }
+}
+
 # The path Godot says it looked at for a missing export template ("No export template found at the expected path: ..."),
 # or $null when the log does not say so.
 function Get-MissingExportTemplate([string]$LogFile) {

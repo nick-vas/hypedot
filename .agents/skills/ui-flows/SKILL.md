@@ -81,6 +81,11 @@ orientation, `release`, and assert the game kept the press and laid itself out a
 project's window size (`display/window/size/*`), whatever the flow before it did. A flow that ends with an action still
 held fails: release it, so a missing release in the game cannot hide behind the runner's clean-up.
 
+A flow fails on its own end line (anything but `ok`, with the step) or on an error of its own printed between its markers. The errors
+Godot's C# bindings log (`Handle is not initialized.`, a collected wrapper; godotengine/godot#124587) are `warnings[]` of the run, with the
+flow that was running, not failures: rerun, or load every C# resource through one cache. The flows run with a throwaway `user://` folder
+(Linux, Windows), so a setting saved by an earlier run does not reach them.
+
 ## Tutorials and notices
 
 Rules from God of War Ragnarok's UI (`${CLAUDE_PLUGIN_ROOT}/docs/gdc/building-the-ui-for-a-aaa-single-player-game.md`):

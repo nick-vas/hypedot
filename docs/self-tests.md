@@ -20,7 +20,7 @@ Each runs as `pwsh tests/<script>`. "Godot" means the kit downloads or finds God
 | `Test-Data.ps1` | the `data` runner (`data-fixture`) | - |
 | `Test-TextSize.ps1` | the `textsize` runner (`textsize-fixture`) | Godot |
 | `Test-Layout.ps1` | the `layout` runner (`layout-fixture`) | Godot |
-| `Test-Flows.ps1` | the `flows` runner's rotation steps (`resize`, `hold`, `release`) and errors (`flows-fixture`) | Godot |
+| `Test-Flows.ps1` | the `flows` runner's rotation steps (`resize`, `hold`, `release`) and errors (`flows-fixture`); a flow failing on its own end line or error only, the engine's C# binding errors (`Handle is not initialized.`) as warnings with the flow that was running (fake logs), and `user://` a throwaway folder during the run | Godot; `-NoGodot` for the fake logs |
 | `Test-Playthrough.ps1` | the `playthrough` runner (`playthrough-fixture`) | Godot; `-NoGodot` for the log part |
 | `Test-Placement.ps1` | `ci/godot/templates/placement_check.gd` (`placement-fixture`), from a GUT test and as the `placement` runner; limits read from GDScript and C# | Godot |
 | `Test-Typography.ps1` | the `typography` skill's Godot claims: every engine name its `godot.md` quotes against ClassDB (a made-up name must fail), and line pitch as font height plus `line_spacing`, `spacing_glyph` in pixels, tabular and proportional figures, `Label.uppercase`, feature names to OpenType tags (`typography-fixture`, GUT) | Godot |

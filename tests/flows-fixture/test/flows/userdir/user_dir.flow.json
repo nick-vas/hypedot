@@ -1,0 +1,8 @@
+{
+  "name": "user:// is a throwaway folder during a flows run",
+  "scene": "res://userdir.tscn",
+  "seed": 1,
+  "steps": [
+    { "wait": 2 }
+  ]
+}
