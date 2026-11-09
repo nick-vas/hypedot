@@ -43,6 +43,7 @@ if (-not $keepJson.ok -or $keepShot.requested -ne '960x360' -or $keepShot.sizeMa
 if ((Get-Content -LiteralPath $keepErr -Raw) -notmatch 'stretch is mode canvas_items, aspect keep') { $failures += 'the size warning should name the stretch setting' }
 $strict = & pwsh -NoProfile -NonInteractive -File $kit shot -Project $keep -Scene res://swatches.tscn -Resolution 960x360 -Frames 5 -Output (Join-Path $temp 'keep-strict') -RequireResolution -Json 2>$null | Out-String | ConvertFrom-Json
 if ($strict.ok -or $strict.error.code -ne 'shot-size') { $failures += "-RequireResolution should fail with shot-size: $($strict | ConvertTo-Json -Depth 5 -Compress)" }
+elseif ($strict.error.message -notmatch 'stretch is mode \w+, aspect keep' -or $strict.error.message -notmatch 'not shown at 960x360') { $failures += "the shot-size error should name the stretch setting and say the layout is not shown: $($strict.error.message)" }
 $match = & pwsh -NoProfile -NonInteractive -File $kit shot -Project $keep -Scene res://swatches.tscn -Resolution 640x360 -Frames 5 -Output (Join-Path $temp 'keep-match') -RequireResolution -Json 2>$null | Out-String | ConvertFrom-Json
 if (-not $match.ok -or -not @($match.shots)[0].sizeMatches) { $failures += "a picture of the size asked for passes -RequireResolution: $($match | ConvertTo-Json -Depth 5 -Compress)" }
 # Two scenes with the same name in different folders get a picture each, not one written over the other.

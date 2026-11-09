@@ -1,7 +1,7 @@
 #!/usr/bin/env pwsh
 # Self-test of doctor's repository checks (GameCI's troubleshooting, applied to Godot): Git LFS pointers left in place
 # of assets, committed signing keys, names Windows cannot create, paths that differ only in case, and res:// paths whose
-# case differs from the file. The broken project is made in a temporary folder: committed here, the reserved name and
+# case differs from the file, and a keep-aspect project whose STYLE.md lists resolutions of another shape. The broken project is made in a temporary folder: committed here, the reserved name and
 # the case twins would break this repository's own checkout on Windows. Needs git; not Godot.
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
@@ -137,6 +137,35 @@ $d = Invoke-DoctorJson $kit ''
 if (@($d.uncommittedKitFiles).Count -or @($d.checks | Where-Object message -match 'kit wrote are not committed').Count) { $failures += 'committed kit files were still reported' }
 $flag = (& pwsh -NoProfile -NonInteractive -File (Join-Path $root 'ci/godot/hyperdot.ps1') test -ReportIssue -Json 2>$null | Out-String | ConvertFrom-Json)
 if ($flag.error.code -ne 'invalid-arguments') { $failures += "-ReportIssue on another command should be invalid-arguments: $($flag.error | ConvertTo-Json -Depth 5 -Compress)" }
+
+# A project that keeps its aspect ratio renders the same layout, with bars, in any other window shape: a target resolution of another shape in
+# docs/STYLE.md cannot be judged by a screenshot, and doctor says so (six look rounds never judged 21:9 and 4:3 for that reason).
+function New-StretchProject([string]$Name, [string]$Display, [string]$Resolutions) {
+    $dir = New-Project $Name
+    Set-Content -LiteralPath (Join-Path $dir 'project.godot') "config_version=5`n`n[application]`n`nconfig/name=`"Stretch`"`nrun/main_scene=`"res://main.tscn`"`n`n[display]`n`n$Display`n"
+    New-Item -ItemType Directory -Force (Join-Path $dir 'docs') | Out-Null
+    Set-Content -LiteralPath (Join-Path $dir 'docs/STYLE.md') "# Style`n`nResolutions: $Resolutions`n"
+    & git -C $dir add -A
+    return $dir
+}
+$base = "window/size/viewport_width=1920`nwindow/size/viewport_height=1080`nwindow/stretch/mode=`"canvas_items`""
+$cases = [ordered]@{
+    'keep'        = @{ display = "$base`nwindow/stretch/aspect=`"keep`""; resolutions = '1920x1080, 2560x1080, 1440x1080'; warn = $true }
+    'keep-default' = @{ display = $base; resolutions = '1920x1080, 2560x1080'; warn = $true }                                  # aspect keep is Godot's default
+    'keep-sameshape' = @{ display = "$base`nwindow/stretch/aspect=`"keep`""; resolutions = '1920x1080, 1280x720, 3840x2160'; warn = $false }
+    'expand'      = @{ display = "$base`nwindow/stretch/aspect=`"expand`""; resolutions = '1920x1080, 2560x1080, 1440x1080'; warn = $false }
+    'disabled'    = @{ display = "window/size/viewport_width=1920`nwindow/size/viewport_height=1080"; resolutions = '1920x1080, 2560x1080'; warn = $false }
+}
+foreach ($name in $cases.Keys) {
+    $case = $cases[$name]
+    $project = New-StretchProject "stretch-$name" $case.display $case.resolutions
+    $messages = Get-DoctorMessages $project
+    Remove-Item -Recurse -Force $project
+    $hit = @($messages | Where-Object { $_ -match 'docs/STYLE\.md lists .* but the stretch aspect is' })
+    if ($case.warn -and $hit.Count -ne 1) { $failures += "stretch case '$name' should warn that its other-shaped resolutions render with bars; got: $($messages -join ' | ')" }
+    if (-not $case.warn -and $hit.Count -ne 0) { $failures += "stretch case '$name' should not warn about its resolutions; got: $hit" }
+    if ($case.warn -and $hit.Count -eq 1 -and ($hit[0] -notmatch '2560x1080' -or $hit[0] -match '1920x1080,|, 1920x1080')) { $failures += "stretch case '$name' should name the resolutions of another shape and not the design one: $($hit[0])" }
+}
 
 Remove-Item -Recurse -Force $clean, $broken, $kit
 if ($failures) { $failures | ForEach-Object { Write-Host "FAIL $_" -ForegroundColor Red }; exit 1 }
