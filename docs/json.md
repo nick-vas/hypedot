@@ -118,7 +118,9 @@ report), `coverage` (`linePercent`, `minimum`), `runnerResults[]` (`reason` says
                   "line": 7, "details": "[20] expected to equal [25]:" } ] }
 ```
 The `architecture` runner's entry also has `warnings[]` (`rule`, `file`, `line`, `message`): findings that do not fail the
-run. A rule set to `error` in the project's `architecture.json` reports its findings as `failures` instead.
+run. The `flows` and `validate` runners' entries have `warnings[]` with rule `engine-internal-error` when Godot's own C# bindings logged
+an error (`Handle is not initialized.`) while a file was checked: `file` is the flow or file that was running (`null` outside every one),
+`message` the error line; a file fails only on its own end marker or an error of its own. A rule set to `error` in the project's `architecture.json` reports its findings as `failures` instead.
 The `juice` runner has one case named `run` (Godot's exit and engine errors) and one per rule and feedback, named
 `<event> -> <feedback> within <ms> ms`; its log is `juice.log` in the results folder. The `playthrough` runner has `run` and one
 case per expected line, named `reached: <text>`, failed with the last milestone reached, or `Not checked` after the first one

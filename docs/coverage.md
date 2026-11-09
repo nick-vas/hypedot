@@ -68,8 +68,8 @@ The codes in [`docs/json.md`](json.md#error-codes), and the tests that raise the
 | `invalid-plan` | `Test-ErrorCodes.ps1`, `Test-Plan.ps1`, `Test-ProjectSync.ps1` |
 | `unknown-gate` | `Test-ErrorCodes.ps1`, `Test-Plan.ps1` |
 | `auto-gate` | `Test-Plan.ps1` |
-| `unknown-task` | `Test-ErrorCodes.ps1`, `Test-ProjectSync.ps1` |
-| `wip-limit` | `Test-ErrorCodes.ps1` |
+| `unknown-task` | `Test-ErrorCodes.ps1`, `Test-Plan.ps1`, `Test-ProjectSync.ps1` |
+| `wip-limit` | `Test-ErrorCodes.ps1`, `Test-Plan.ps1` |
 | `project-credentials` | `Test-ProjectSync.ps1` |
 | `project-error` | `Test-ProjectSync.ps1` |
 | `project-column-missing` | `Test-ProjectSync.ps1` |
@@ -123,7 +123,7 @@ The codes in [`docs/json.md`](json.md#error-codes), and the tests that raise the
 | `Assets.ps1` | 12/12 | `Test-AssetManifest.ps1`, `Test-Addons.ps1`, `Test-Audio.ps1`, `Test-Context.ps1`, `Test-DoctorFixture.ps1`, `Test-ErrorCodes.ps1`, `Test-Flaky.ps1`, `Test-OldState.ps1` and 6 more |
 | `Audio.ps1` | 10/11 | `Test-Localization.ps1`, `Test-SelectJobs.ps1`, `Test-Audio.ps1`, `Test-ErrorCodes.ps1`, `Test-AssetManifest.ps1`, `Test-Addons.ps1`, `Test-Context.ps1`, `Test-DoctorFixture.ps1` and 6 more |
 | `BuildSize.ps1` | 4/4 | `Test-BuildSize.ps1`, `Test-SelectJobs.ps1`, `Test-ErrorCodes.ps1` |
-| `Common.ps1` | 46/53 | `Test-ErrorKeys.ps1`, `Test-Flaky.ps1`, `Test-BenchSweep.ps1`, `Test-GpuValidation.ps1`, `Test-Localization.ps1`, `Test-Palette.ps1`, `Test-Playthrough.ps1`, `Test-Soak.ps1` and 54 more |
+| `Common.ps1` | 46/54 | `Test-ErrorKeys.ps1`, `Test-Flaky.ps1`, `Test-BenchSweep.ps1`, `Test-GpuValidation.ps1`, `Test-Localization.ps1`, `Test-Flows.ps1`, `Test-Palette.ps1`, `Test-Playthrough.ps1` and 54 more |
 | `Context.ps1` | 8/10 | `Test-Context.ps1`, `Test-Help.ps1`, `Test-DoctorFixture.ps1`, `Test-Addons.ps1`, `Test-AssetManifest.ps1`, `Test-Audio.ps1`, `Test-ErrorCodes.ps1`, `Test-Flaky.ps1` and 5 more |
 | `Credits.ps1` | 6/7 | `Test-Credits.ps1`, `Test-ErrorCodes.ps1` |
 | `Data.ps1` | 0/20 | `Test-Data.ps1` |
@@ -142,9 +142,9 @@ The codes in [`docs/json.md`](json.md#error-codes), and the tests that raise the
 | `Platforms.ps1` | 1/1 | `Test-Platforms.ps1`, `Test-Addons.ps1`, `Test-AssetManifest.ps1`, `Test-Audio.ps1`, `Test-Context.ps1`, `Test-DoctorFixture.ps1`, `Test-ErrorCodes.ps1`, `Test-Flaky.ps1` and 5 more |
 | `Playtest.ps1` | 8/8 | `Test-Playtest.ps1` |
 | `Playthrough.ps1` | 3/3 | `Test-Playthrough.ps1` |
-| `Report.ps1` | 29/34 | `Test-ErrorKeys.ps1`, `Test-Flaky.ps1`, `Test-Localization.ps1`, `Test-ArchitectureFixtures.ps1`, `Test-Data.ps1`, `Test-Detect.ps1`, `Test-FailureDelta.ps1`, `Test-GitLabTemplate.ps1` and 25 more |
-| `Runners.ps1` | 7/7 | `Test-Flaky.ps1`, `Test-StaleTres.ps1`, `Test-Detect.ps1`, `Test-SelectJobs.ps1`, `Test-TestsNotRun.ps1`, `Test-ErrorCodes.ps1`, `Test-DotnetTempDir.ps1`, `Test-Flows.ps1` and 10 more |
-| `Setup.ps1` | 11/16 | `Test-DownloadFailed.ps1`, `Test-BenchSweep.ps1`, `Test-InstallLock.ps1`, `Test-GameVersion.ps1`, `Test-InstallAddon.ps1`, `Test-ReportPins.ps1`, `Test-SelectJobs.ps1`, `Test-TestsNotRun.ps1` and 34 more |
+| `Report.ps1` | 29/34 | `Test-ErrorKeys.ps1`, `Test-Flaky.ps1`, `Test-Flows.ps1`, `Test-Localization.ps1`, `Test-ArchitectureFixtures.ps1`, `Test-Data.ps1`, `Test-Detect.ps1`, `Test-FailureDelta.ps1` and 25 more |
+| `Runners.ps1` | 7/8 | `Test-Flaky.ps1`, `Test-Flows.ps1`, `Test-StaleTres.ps1`, `Test-Detect.ps1`, `Test-SelectJobs.ps1`, `Test-TestsNotRun.ps1`, `Test-ErrorCodes.ps1`, `Test-DotnetTempDir.ps1` and 10 more |
+| `Setup.ps1` | 11/16 | `Test-DownloadFailed.ps1`, `Test-BenchSweep.ps1`, `Test-Flows.ps1`, `Test-InstallLock.ps1`, `Test-GameVersion.ps1`, `Test-InstallAddon.ps1`, `Test-ReportPins.ps1`, `Test-SelectJobs.ps1` and 34 more |
 | `Sfx.ps1` | 5/6 | `Test-SelectJobs.ps1`, `Test-Sfx.ps1` |
 | `Soak.ps1` | 6/10 | `Test-Soak.ps1` |
 | `Status.ps1` | 16/16 | `Test-ArchitectureFixtures.ps1`, `Test-Data.ps1`, `Test-Localization.ps1`, `Test-Telemetry.ps1`, `Test-TestDuration.ps1`, `Test-ErrorKeys.ps1`, `Test-Flaky.ps1`, `Test-Handoffs.ps1` and 10 more |

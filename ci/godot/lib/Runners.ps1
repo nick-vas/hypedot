@@ -83,9 +83,20 @@ function Invoke-DotnetTest([string]$Target, [string]$ResultsDir, [string]$Filter
     }
 }
 
-# One case per file from tools/validate.gd's markers; errors printed between a file's markers fail it.
-function ConvertFrom-ValidateLog([string]$LogFile, [string]$Marker = 'validate') {
+# One case per file from tools/validate.gd's markers; errors printed between a file's markers fail it. With $EngineErrors (a list), the
+# errors Godot's own C# bindings log (see EngineInternalPattern) do not fail the file that was running: they are added to the list as
+# @{ where = <the file, or $null outside every file>; text = <the error line> }, to be reported as warnings. A file fails on its own end marker
+# (anything but ok) or on an error of its own printed between its markers.
+function ConvertFrom-ValidateLog([string]$LogFile, [string]$Marker = 'validate', [System.Collections.Generic.List[object]]$EngineErrors = $null) {
     $cases = @(); $current = $null; $buffer = @(); $outside = @(); $since = @()
+    # The project's own errors among some lines; the engine's are noted in $EngineErrors against $where.
+    $select = {
+        param([string[]]$Lines, $where)
+        if ($null -eq $EngineErrors) { return @(Select-GodotErrors $Lines) }
+        $split = Split-GodotErrors $Lines
+        foreach ($text in $split.Engine) { $EngineErrors.Add([ordered]@{ where = $where; text = $text.Trim() }) }
+        return @($split.Own)
+    }
     $lines = @(Get-Content -LiteralPath $LogFile | ForEach-Object { $_ -replace "`e\[[0-9;]*m", '' })
     # Godot 4.5+: validate.gd's logger prints each file's errors on stdout before its end marker ("@@validate error").
     # stderr reaches the log out of order with stdout, so its lines between a file's markers may be another file's: then
@@ -97,7 +108,7 @@ function ConvertFrom-ValidateLog([string]$LogFile, [string]$Marker = 'validate')
         } elseif ($current -and $line.StartsWith("@@$Marker end $current ")) {
             # Matched by the known path rather than a regex: paths may contain spaces.
             $status = $line.Substring("@@$Marker end $current ".Length)
-            $problems = @(Select-GodotErrors $buffer)
+            $problems = @(& $select $buffer $current)
             if ($status -ne 'ok') { $problems = @($status) + $problems }
             $cases += @{ Name = $current; Failure = ($problems -join "`n") }
             $current = $null
@@ -114,12 +125,12 @@ function ConvertFrom-ValidateLog([string]$LogFile, [string]$Marker = 'validate')
     # after its begin marker, rather than being left out.
     if ($current) {
         $crash = @($since | Where-Object { $_ -match 'Program crashed with signal|was still running after' } | ForEach-Object { $_.Trim() })
-        $cases += @{ Name = $current; Failure = (@("Godot stopped while checking this file") + $crash + @(Select-GodotErrors $since)) -join "`n" }
+        $cases += @{ Name = $current; Failure = (@("Godot stopped while checking this file") + $crash + @(& $select $since $current)) -join "`n" }
     }
     # Errors outside any file (before the first: autoloads, project settings; with the logger, all of stderr) belong to the
     # project as a whole, unless a file already reported the same error (stderr can reach the log away from its file's markers).
     $reported = ($cases | ForEach-Object { $_.Failure }) -join "`n"
-    $startup = @(Select-GodotErrors $outside | Where-Object { -not $reported.Contains(($_ -replace '^\s*(SHADER ERROR|SCRIPT ERROR|ERROR):\s*', '').Trim()) })
+    $startup = @(& $select $outside $null | Where-Object { -not $reported.Contains(($_ -replace '^\s*(SHADER ERROR|SCRIPT ERROR|ERROR):\s*', '').Trim()) })
     # An error's "at: _ready (res://addons/x/y.gd:20)" line follows it: keep it, so the failure names its file and line.
     $startup = @(foreach ($text in $startup) {
         $text
@@ -128,6 +139,16 @@ function ConvertFrom-ValidateLog([string]$LogFile, [string]$Marker = 'validate')
     })
     if ($startup.Count -gt 0) { $cases += @{ Name = 'project startup'; Failure = ($startup -join "`n") } }
     return $cases
+}
+
+# The errors Godot's own C# bindings logged while a runner ran (ConvertFrom-ValidateLog's $EngineErrors): they fail nothing, so they go to
+# findings.json as warnings (rule engine-internal-error; runnerResults[].warnings, and the pull request comment) with the file that was running.
+function Write-EngineErrorFindings($EngineErrors, [string]$Runner, [string]$ResultsDir) {
+    if ($EngineErrors.Count -eq 0) { return }
+    $findings = @($EngineErrors | ForEach-Object { [ordered]@{ rule = 'engine-internal-error'; severity = 'warning'; file = $_.where; line = $null; message = $_.text } })
+    ConvertTo-Json -InputObject $findings -Depth 4 | Set-Content -LiteralPath (Join-Path $ResultsDir 'findings.json') -Encoding utf8
+    $where = @($EngineErrors | Group-Object { $_.where ? $_.where : 'outside every file' } | ForEach-Object { "$($_.Name) x$($_.Count)" })
+    Write-CiLog "${Runner}: Godot's own C# bindings logged $($EngineErrors.Count) error(s) ($($where -join ', ')): warnings, not failures (godotengine/godot#124587); $(Format-KitCommand 'test') again, or load every C# resource through a cache"
 }
 
 # GUT skips a test script that does not load (a parse error) with a warning, "Ignoring script ... because it does not
@@ -221,7 +242,9 @@ function Invoke-TestRunner {
             Start-LogGroup 'Validate scripts, scenes and resources'
             $code = Invoke-Logged $godot @('--headless', '--path', $project, '-s', $tool) $log
             Stop-LogGroup
-            $cases = @(ConvertFrom-ValidateLog $log)
+            $engineErrors = [System.Collections.Generic.List[object]]::new()
+            $cases = @(ConvertFrom-ValidateLog $log 'validate' $engineErrors)
+            Write-EngineErrorFindings $engineErrors 'validate' $ResultsDir
             if ($code -ne 0) { $cases += @{ Name = 'validate'; Failure = "Godot exited with $code" } }
             Write-JUnitCases (Join-Path $ResultsDir 'validate.junit.xml') 'validate' $cases
         }
@@ -229,9 +252,23 @@ function Invoke-TestRunner {
             $log = Join-Path $ResultsDir 'flows.log'
             $tool = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '../tools/flows.gd')).Path -replace '\\', '/'
             Start-LogGroup 'UI flows'
-            $code = Invoke-Logged $godot @('--headless', '--path', $project, '-s', $tool, '--', $Filter) $log
+            # A throwaway user:// folder (Linux: XDG_DATA_HOME, Windows: APPDATA; macOS keeps its own): a setting saved by whoever ran the flows
+            # last (a camera-sway toggle once turned menu_navigation red on one machine) must not reach them, and what they save is not left behind.
+            $userHome = Join-Path ([System.IO.Path]::GetTempPath()) "hyperdot-user-$([guid]::NewGuid().ToString('N').Substring(0, 8))"
+            $savedData = $env:XDG_DATA_HOME; $savedAppData = $env:APPDATA
+            try {
+                New-Item -ItemType Directory -Force $userHome | Out-Null
+                if ($IsWindows) { $env:APPDATA = $userHome } elseif (-not $IsMacOS) { $env:XDG_DATA_HOME = $userHome }
+                $code = Invoke-Logged $godot @('--headless', '--path', $project, '-s', $tool, '--', $Filter) $log
+            } finally {
+                $env:XDG_DATA_HOME = $savedData; $env:APPDATA = $savedAppData
+                Remove-Item -LiteralPath $userHome -Recurse -Force -ErrorAction SilentlyContinue
+            }
             Stop-LogGroup
-            $cases = @(ConvertFrom-ValidateLog $log 'flow')
+            # A flow fails on its own end line or on an error of its own between its markers; the engine's own errors are warnings.
+            $engineErrors = [System.Collections.Generic.List[object]]::new()
+            $cases = @(ConvertFrom-ValidateLog $log 'flow' $engineErrors)
+            Write-EngineErrorFindings $engineErrors 'flows' $ResultsDir
             if ($code -ne 0) { $cases += @{ Name = 'flows'; Failure = "Godot exited with $code" } }
             Write-JUnitCases (Join-Path $ResultsDir 'flows.junit.xml') 'flows' $cases
         }

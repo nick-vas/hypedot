@@ -4,7 +4,10 @@
 # the release afterwards), rotate during a loading screen, and check that the next flow starts at the project's window
 # size with nothing held. The broken flows fail with the reason each one gives: a bad size, an unknown or numeric hold,
 # a release of an action not held, an action step on a held action, a flow that ends with an action held, and a loading
-# screen that picks its layout before the rotation. Needs Godot (GODOT_BIN, or the kit installs it).
+# screen that picks its layout before the rotation. A flow fails on its own end line or on an error of its own between its markers; the errors
+# Godot's C# bindings log ("Handle is not initialized.") are warnings that name the flow that was running (fake logs, no Godot), and the flows
+# run with a throwaway user:// folder. Needs Godot (GODOT_BIN, or the kit installs it); -NoGodot runs the log checks only.
+param([switch]$NoGodot)
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot
@@ -24,13 +27,68 @@ function Invoke-Flows([string]$Filter) {
             $failure = $case.SelectSingleNode('failure')
             [pscustomobject]@{ Name = $case.GetAttribute('name'); Message = $(if ($failure) { $failure.InnerText } else { '' }) }
         } })
+    $log = Join-Path $results 'flows/flows.log'
+    $logText = if (Test-Path -LiteralPath $log) { Get-Content -LiteralPath $log -Raw } else { '' }
     Remove-Item -Recurse -Force $results -ErrorAction SilentlyContinue
-    return [pscustomobject]@{ Ok = [bool]$json.ok; Cases = $cases }
+    return [pscustomobject]@{ Ok = [bool]$json.ok; Cases = $cases; LogText = $logText }
 }
 function Get-Message($Result, [string]$File) {
     $found = @($Result.Cases | Where-Object { $_.Name -like "*/$File" })
     if ($found.Count -eq 0) { return '<no case>' }
     return $found[0].Message
+}
+
+# The runner reads Godot's log (fake ones here, no Godot): a flow fails on its own end line, or on an error of its own printed between its markers.
+# Godot's C# bindings log "Handle is not initialized." (godotengine/godot#124587) around whatever flow is running: those are warnings that name
+# the flow, not failures. The issue it answers: 56 flows ended ok and the summary still said 53 passed, 3 failed.
+foreach ($lib in 'Common', 'Report', 'Runners', 'Setup') { . (Join-Path $root "ci/godot/lib/$lib.ps1") }
+$fakeLog = Join-Path ([IO.Path]::GetTempPath()) "flows-fake-$([guid]::NewGuid().ToString('N').Substring(0, 8)).log"
+function Read-FakeLog([string[]]$Lines, [bool]$Separate = $true) {
+    Set-Content -LiteralPath $fakeLog -Value $Lines
+    $engine = [System.Collections.Generic.List[object]]::new()
+    $cases = @(if ($Separate) { ConvertFrom-ValidateLog $fakeLog 'flow' $engine } else { ConvertFrom-ValidateLog $fakeLog 'flow' })
+    return [pscustomobject]@{ Cases = $cases; Engine = $engine; Failed = @($cases | Where-Object { $_.Failure }) }
+}
+try {
+    $handle = 'ERROR: System.InvalidOperationException: Handle is not initialized.'
+    $lines = @(foreach ($n in 1..56) {
+        "@@flow begin res://test/flows/f$n.flow.json"
+        if ($n -in 10, 40) { $handle; '   at Godot.NativeInterop.NativeFuncs.SwapGCHandleForType()' }
+        "@@flow end res://test/flows/f$n.flow.json ok"
+        if ($n -eq 56) { $handle }
+    }) + '@@flow done 56'
+    $r = Read-FakeLog $lines
+    Assert-True ($r.Cases.Count -eq 56 -and $r.Failed.Count -eq 0) "56 flows that ended ok and 3 engine errors: 0 failed flows ($($r.Failed.Count) failed of $($r.Cases.Count))"
+    Assert-True ($r.Engine.Count -eq 3 -and $r.Engine[0].where -eq 'res://test/flows/f10.flow.json' -and $r.Engine[1].where -eq 'res://test/flows/f40.flow.json' -and $null -eq $r.Engine[2].where -and $r.Engine[0].text -like '*Handle is not initialized*') 'the 3 engine errors are listed with the flow that was running (the last after every flow)'
+    $r = Read-FakeLog $lines $false
+    Assert-True ($r.Failed.Count -ge 2) "without the list (the other callers) an error between a flow's markers still fails it"
+
+    # An error of its own, between one flow's markers, fails that flow by name, and only that one.
+    $own = "SCRIPT ERROR: Invalid call. Nonexistent function 'jump' in base 'Nil'."
+    $r = Read-FakeLog @('@@flow begin res://a.flow.json', '@@flow end res://a.flow.json ok', '@@flow begin res://b.flow.json', $own, '@@flow end res://b.flow.json ok', '@@flow begin res://c.flow.json', $handle, '@@flow end res://c.flow.json ok')
+    Assert-True ($r.Failed.Count -eq 1 -and $r.Failed[0].Name -eq 'res://b.flow.json' -and $r.Failed[0].Failure -like '*Nonexistent function*' -and $r.Engine.Count -eq 1) "an error of its own fails its flow by name, the engine's does not: $(@($r.Failed | ForEach-Object { $_.Name }) -join ', ')"
+    # A flow's own end line decides too: anything but ok fails it, and says the step.
+    $r = Read-FakeLog @('@@flow begin res://d.flow.json', '@@flow end res://d.flow.json step 2 ({"press":"Play"}): no node Play')
+    Assert-True ($r.Failed.Count -eq 1 -and $r.Failed[0].Failure -like 'step 2 *no node Play*') "a flow that did not end ok fails with its step: $(@($r.Failed | ForEach-Object { $_.Failure }) -join ' | ')"
+    # The first line may name nothing and the managed trace under it the bindings: that is the engine's. A trace that names only the game's code is the game's.
+    $r = Read-FakeLog @('@@flow begin res://e.flow.json', 'ERROR: System.Exception: collected', '   at Godot.Bridge.ScriptManagerBridge.CreateManagedForGodotObjectBinding()', '@@flow end res://e.flow.json ok')
+    Assert-True ($r.Failed.Count -eq 0 -and $r.Engine.Count -eq 1) "an error whose stack trace names ScriptManagerBridge is the engine's"
+    $r = Read-FakeLog @('@@flow begin res://f.flow.json', 'ERROR: System.NullReferenceException: Object reference not set to an instance of an object.', '   at Game.Player._Ready() in /game/Player.cs:line 3', '@@flow end res://f.flow.json ok')
+    Assert-True ($r.Failed.Count -eq 1 -and $r.Engine.Count -eq 0) "an error whose stack trace names only the game's code stays the flow's"
+    # The warnings reach findings.json (runnerResults[].warnings).
+    $results = Join-Path ([IO.Path]::GetTempPath()) "flows-find-$([guid]::NewGuid().ToString('N').Substring(0, 8))"
+    New-Item -ItemType Directory -Force $results | Out-Null
+    Write-EngineErrorFindings ([System.Collections.Generic.List[object]]@([ordered]@{ where = 'res://c.flow.json'; text = $handle })) 'flows' $results
+    $found = @(Get-Content -LiteralPath (Join-Path $results 'findings.json') -Raw | ConvertFrom-Json)
+    Assert-True ($found.Count -eq 1 -and $found[0].rule -eq 'engine-internal-error' -and $found[0].severity -eq 'warning' -and $found[0].file -eq 'res://c.flow.json') 'the engine error is a warning in findings.json, with its flow'
+    Remove-Item -LiteralPath $results -Recurse -Force
+} finally {
+    Remove-Item -LiteralPath $fakeLog -Force -ErrorAction SilentlyContinue
+}
+if ($NoGodot) {
+    if ($failures.Count) { Write-Host "$($failures.Count) check(s) failed" -ForegroundColor Red; exit 1 }
+    Write-Host 'flows: engine errors are warnings; a flow fails on its own end line or error (fake logs)'
+    exit 0
 }
 
 $good = Invoke-Flows 'flows/good/'
@@ -40,6 +98,16 @@ Assert-True ($good.Cases.Count -eq 3) "three good flows ran: $($good.Cases.Count
 # Flows share one process: what one leaves (a paused tree, a time scale, a node in the root window) is cleaned before the next.
 $leak = Invoke-Flows 'flows/leak/'
 Assert-True ($leak.Ok -and $leak.Cases.Count -eq 2) "a flow that leaves the tree paused, the time scale at 3 and a node in the root does not reach the next flow: $(@($leak.Cases | Where-Object Message | ForEach-Object { "$($_.Name): $($_.Message)" }) -join ' | ')"
+
+# The flows run with a throwaway user:// folder (Linux and Windows), not the one where whoever ran them last keeps saved settings; it is gone afterwards.
+$userdir = Invoke-Flows 'flows/userdir/'
+$printed = [regex]::Match($userdir.LogText, '\[userdir\] (?<dir>.+)').Groups['dir'].Value.Trim()
+Assert-True ($userdir.Ok -and $printed) "the user-dir flow ran and the scene printed where user:// is: $printed"
+if (-not $IsMacOS) {
+    $throwaway = [regex]::Match($printed, '^.*hyperdot-user-[0-9a-f]{8}').Value
+    Assert-True ($throwaway -ne '') "user:// is inside a throwaway folder during a flows run: $printed"
+    Assert-True ($throwaway -ne '' -and -not (Test-Path -LiteralPath $throwaway)) "the throwaway folder is removed afterwards: $throwaway"
+}
 
 $broken = Invoke-Flows 'flows/broken/'
 Assert-True (-not $broken.Ok) 'the broken flows fail the run'
