@@ -21,6 +21,20 @@ Still open from phases 1 and 2:
 - A first real `/game` run on Breakout Roguelike: a confirmed GDD, a `plan/STATUS.md` the owner agrees with, and a board
   that matches it.
 
+Still open from the issue pass of 2026-11-09 (#230, #231, #221 and #212 in part; the issues hold the measurements):
+
+- **`-TimeoutSec` and a partial result for `status` and `plan` (#230).** `detect`, `plan` and `status` are several times faster on a
+  large game (4,500 files: 9.1 to 1.7 s, 15 to 2 s, 21 to 4 s), but a command that still takes too long is not cut short: there is
+  no time limit and no partial result with a field that says what was skipped.
+- **Under stretch aspect `keep`, `shot -Resolution` cannot show another shape (#212).** The engine renders the base size with bars,
+  so `doctor` warns about such targets in `docs/STYLE.md` and `look` fails them with `shot-size` instead of judging them. Left
+  undone: drawing the bars into a picture of the requested size (the colour and scale could not be checked against a real window,
+  where a screen grab of the virtual display came back black), and naming files by resolution (the `look` skill already uses one
+  folder per resolution, and a new name would stop old `-Baseline` folders matching).
+- **`flows` on macOS still writes to the real `user://` folder.** On Linux and Windows the flows run with a throwaway user folder
+  (`XDG_DATA_HOME`, `APPDATA`); the macOS location was not moved. The engine's own "Handle is not initialized" lines that the
+  report classifies as warnings were matched against the pattern in `Common.ps1` but never reproduced locally.
+
 ## 0.1.0: the first Hyperdot release
 
 Agreed in a question round with the owner on 2026-10-22. The kit becomes **Hyperdot**, a Godot-specific game development
