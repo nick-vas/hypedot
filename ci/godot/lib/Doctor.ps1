@@ -632,6 +632,18 @@ function Invoke-Doctor($Info, [switch]$ReportIssue) {
         Add-Check WARN 'The git repository has no remote, so the only copy is on this disk' 'git remote add origin <url>; git push -u origin HEAD'
     }
 
+    # Two workflows that call the kit run twice on every push and pull request. With one concurrency group (what init writes) and cancel-in-progress,
+    # each run cancels the other, so Export and Release showed as failed after 0 seconds on every pull request for a week while Test passed.
+    if ($gitRoot) {
+        $callers = @(Get-KitWorkflowFiles $gitRoot)
+        if ($callers.Count -gt 1) {
+            $groups = @($callers | ForEach-Object { if ((Get-Content -LiteralPath $_.FullName -Raw) -match '(?m)^\s*group:\s*(?<g>\S.*?)\s*$') { $Matches.g } })
+            $shared = @($groups | Group-Object | Where-Object Count -gt 1).Count -gt 0
+            $names = @($callers | ForEach-Object { ".github/workflows/$($_.Name)" })
+            Add-Check WARN "Two workflows call the kit ($(& $first $names)): each push and pull request runs both$(if ($shared) { ', and they share a concurrency group with cancel-in-progress, so each run cancels the other (Export and Release show as failed after 0 seconds)' })" 'Delete one of them (init keeps .github/workflows/hyperdot.yml)'
+        }
+    }
+
     # Files the kit wrote that are not committed: a fresh clone of the game would lack the instructions, skills and
     # workflow its agents rely on.
     $kitFiles = @()

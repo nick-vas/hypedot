@@ -20,14 +20,28 @@ function Add-GitignoreEntries([string]$ProjectDir, [string[]]$Entries) {
     Write-InitStep updated ".gitignore: $($missing -join ', ')"
 }
 
+# The workflow files of a repository that call the kit's reusable workflow (under its name now or before Hyperdot), by file name.
+function Get-KitWorkflowFiles([string]$GitRoot) {
+    $workflows = Join-Path $GitRoot '.github/workflows'
+    @(Get-ChildItem -LiteralPath $workflows -File -ErrorAction SilentlyContinue | Where-Object { $_.Extension -in '.yml', '.yaml' } |
+        Where-Object { (Get-Content -LiteralPath $_.FullName -Raw) -match '(hyperdot|Godot_TestSuite)/\.github/workflows/godot\.yml' } | Sort-Object Name)
+}
+
 function New-CiWorkflow([string]$ProjectDir) {
     $root = Get-GitRoot $ProjectDir
     if (-not $root) { Write-InitStep skipped 'CI workflow: not a git repository'; return }
     $workflows = Join-Path $root '.github/workflows'
-    # A workflow written before Hyperdot calls the old repository name: it is moved once to the new name.
+    # A workflow written before Hyperdot calls the old repository name: it is moved once to the new name, unless another workflow already
+    # calls the kit: rewriting this one would leave two copies on the same triggers and concurrency group, and each run would cancel the other
+    # (a game ended up with godot-ci.yml and hyperdot.yml, identical, and Export and Release failed after 0 seconds on every pull request).
     foreach ($old in @(Get-ChildItem -LiteralPath $workflows -File -ErrorAction SilentlyContinue)) {
         $text = Get-Content -LiteralPath $old.FullName -Raw
         if ($text -notmatch 'Godot_TestSuite/\.github/workflows/godot\.yml') { continue }
+        $others = @(Get-KitWorkflowFiles $root | Where-Object { $_.FullName -ne $old.FullName })
+        if ($others.Count -gt 0) {
+            Write-InitStep skipped ".github/workflows/$($old.Name) calls the kit by its old name and $($others[0].Name) calls it too: delete one of them (left as it is; two workflows on the same triggers cancel each other)"
+            continue
+        }
         Set-Content -LiteralPath $old.FullName -Encoding utf8 -NoNewline -Value ($text -replace 'nick-vas/Godot_TestSuite', 'nick-vas/hyperdot')
         $target = Join-Path $workflows 'hyperdot.yml'
         if ($old.Name -eq 'godot-ci.yml' -and -not (Test-Path -LiteralPath $target)) {
@@ -37,8 +51,7 @@ function New-CiWorkflow([string]$ProjectDir) {
             Write-InitStep updated ".github/workflows/$($old.Name) calls nick-vas/hyperdot"
         }
     }
-    $existing = @(Get-ChildItem -LiteralPath $workflows -File -ErrorAction SilentlyContinue |
-        Where-Object { (Get-Content -LiteralPath $_.FullName -Raw) -match 'hyperdot/\.github/workflows/godot\.yml' })
+    $existing = @(Get-KitWorkflowFiles $root)      # under either name: one left under its old name (see above) still counts, so no third copy is written
     if ($existing) { Write-InitStep skipped "CI workflow: $($existing[0].Name) already calls the kit"; return }
     $file = Join-Path $workflows 'hyperdot.yml'
     if (Test-Path -LiteralPath $file) { Write-InitStep skipped 'CI workflow: .github/workflows/hyperdot.yml exists'; return }
