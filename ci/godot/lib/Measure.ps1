@@ -388,7 +388,7 @@ function Invoke-Shot {
     $validation = if ($GpuValidation) { Get-GpuValidation @(Get-Content -LiteralPath $log) } else { $null }
     if ($validation) { Set-JsonField gpuValidation $validation.Report; Assert-GpuValidation $validation.Report 'The screenshot run' }
     if ($RequireResolution -and $sizeOff) {
-        Stop-GodotCi "-RequireResolution: $(@($sizeOff | ForEach-Object { "$(Split-Path $_.file -Leaf) is $($_.width)x$($_.height)" }) -join '; ') instead of $Resolution (see the warning above for the stretch setting)" 'shot-size'
+        Stop-GodotCi "-RequireResolution: $(@($sizeOff | ForEach-Object { "$(Split-Path $_.file -Leaf) is $($_.width)x$($_.height)" }) -join '; ') instead of $Resolution ($why): with aspect keep the game renders its base size with bars, so that layout is not shown at $Resolution; set the aspect to expand (or keep_width, keep_height), or take the picture at the base size" 'shot-size'
     }
     $missing = @(foreach ($shot in $shots) { foreach ($kind in $kinds) { if (-not $shot.Contains('colorVision') -or -not $shot.colorVision.Contains($kind)) { "$($shot.file) has no $kind picture" } } })
     $problems += $missing

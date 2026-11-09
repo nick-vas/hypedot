@@ -355,6 +355,19 @@ function Invoke-Doctor($Info, [switch]$ReportIssue) {
         Add-Check WARN "application/config/version is '$($configVersion.Groups[1].Value)': exports accept only numbers and dots, so Windows builds get version 1.0.0.0" `
             'Use x.y.z there; put pre-release and build labels in the InformationalVersion of the C# assembly (godot-export-release)'
     }
+    # A project that keeps its aspect ratio renders the same layout, with bars, in any other window shape: a wider or squarer target in
+    # docs/STYLE.md shows nothing new, and shot returns the base-size picture for it (six look rounds never judged 21:9 and 4:3 that way).
+    $stretch = Get-StretchSetting $Info
+    $targets = @((Get-LookSetup $Info).resolutions)
+    if ($stretch.mode -ne 'disabled' -and $stretch.aspect -in 'keep', 'ignore' -and $targets.Count -gt 0) {
+        $base = if ($stretch.baseSize) { $stretch.baseSize } else { '1152x648' }      # Godot's default viewport
+        $baseRatio = [double]($base -split 'x')[0] / [double]($base -split 'x')[1]
+        $other = @($targets | Where-Object { $parts = $_ -split 'x'; [math]::Abs(([double]$parts[0] / [double]$parts[1]) / $baseRatio - 1) -gt 0.01 })
+        if ($other.Count -gt 0) {
+            Add-Check WARN "docs/STYLE.md lists $($other -join ', ') but the stretch aspect is $($stretch.aspect) (base size $base): the game renders the same layout, with bars, at those sizes, so shot cannot show a different one" `
+                'Project Settings > Display > Window > Stretch > Aspect: expand (or keep_width, keep_height) to design for them, or drop them from the Resolutions line of docs/STYLE.md (look)'
+        }
+    }
     # Without modify_resources, a Windows exe keeps the export template's version and icon (Godot's own 4.7.2).
     $presetsFile = Join-Path $project 'export_presets.cfg'
     if ((Test-Path -LiteralPath $presetsFile) -and (Get-Content -LiteralPath $presetsFile -Raw) -match '(?m)^application/modify_resources=false') {

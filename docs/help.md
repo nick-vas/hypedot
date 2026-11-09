@@ -92,7 +92,7 @@ Save real screenshots of scenes at a resolution, and compare them with earlier o
 
 Needs a display. Also checks text cut off in other languages, colour-blind views and the palette in docs/STYLE.md.
 
-A project whose stretch aspect is `keep` (the default) renders at its base size with bars, whatever the window: `-Resolution 2560x1080` then returns a 1920x1080 picture and `shot` says so (a warning, naming the stretch setting); set the aspect to `expand` to judge a wide or 4:3 layout, and add `-RequireResolution` to fail with `shot-size` when a picture is not the size asked for. Several game flags go in one comma-joined argument: `-GameArgs "--stage=x,--seed=1"`; separate tokens give `invalid-arguments`.
+A project whose stretch aspect is `keep` (the default) renders at its base size with bars, whatever the window: `-Resolution 2560x1080` then returns a 1920x1080 picture and `shot` says so (a warning, naming the stretch setting); set the aspect to `expand` to judge a wide or 4:3 layout, and add `-RequireResolution` to fail with `shot-size` when a picture is not the size asked for (`/look` does); `doctor` warns when docs/STYLE.md lists resolutions of another shape than the base size under aspect `keep`. Several game flags go in one comma-joined argument: `-GameArgs "--stage=x,--seed=1"`; separate tokens give `invalid-arguments`.
 
 ### status
 Everything computable about where the game is, in one read-only pass: GDD features, tagged tests, plan, runs, git.

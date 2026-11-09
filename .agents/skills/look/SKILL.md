@@ -28,8 +28,15 @@ Hand the screenshots to the `godot-verifier` subagent so the images stay out of 
 (or the main scenes from `status` `inventory.scenes`), at every resolution in `look.resolutions`:
 
 ```powershell
-pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 shot -Json -Quiet -Scene res://ui/Menu.tscn,res://ui/Hud.tscn -Resolution 1920x1080 -Output screenshots/1920x1080
+pwsh ${CLAUDE_PLUGIN_ROOT}/ci/godot/hyperdot.ps1 shot -Json -Quiet -Scene res://ui/Menu.tscn,res://ui/Hud.tscn -Resolution 1920x1080 -RequireResolution -Output screenshots/1920x1080
 ```
+
+`-RequireResolution` makes a picture of another size fail with `shot-size`. A project whose stretch aspect is `keep` (Godot's default) renders its base
+size with bars in any window, so `-Resolution 2560x1080` would otherwise hand back a 1920x1080 picture that looks like a wide layout and is not one
+(six rounds once passed without judging 21:9 and 4:3 for that reason; `doctor` warns about it too). When a resolution fails with `shot-size`, that
+layout is not shown: do not judge a picture as if it were that size. Report it as a finding (resolution | not shown | the stretch mode and aspect from
+the error), run the other resolutions, and let the user choose between aspect `expand` (or `keep_width`, `keep_height`) in Project Settings > Display >
+Window > Stretch and dropping the resolution from the `Resolutions:` line of `docs/STYLE.md`.
 
 Ask it to judge each picture against `docs/STYLE.md` and its "Choices": text too small or clipped, contrast, overlap, things
 outside the safe area, colours off the palette (`shots[].palette`: `offPalettePercent`, `colours[]` and the marked
