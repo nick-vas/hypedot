@@ -20,7 +20,9 @@ keep its `.gdignore`: without it, the kit's `.gd` tool scripts (ten in `ci/godot
 - a starter test: gdUnit4Net for C# projects (packages kept out of release builds), GUT for GDScript;
 - `.gitignore` entries and test-folder exclusions in your export presets;
 - `solution_directory` in `project.godot` when your `.sln` lives outside the project folder;
-- `.github/workflows/hyperdot.yml`.
+- `.github/workflows/hyperdot.yml`, unless a workflow in the repository already calls the kit, under any name. `init` never makes a second one, and
+  leaves a workflow that still calls the kit by its old name (`Godot_TestSuite`) as it is when another one calls it too; `doctor` warns when two
+  workflows call the kit, since two runs on every push in one concurrency group cancel each other.
 
 With `-Agents` it also writes `AGENTS.md`, `CLAUDE.md` and `docs/kit-notes.md` (where the agent notes each
 time the kit got in the way), and enables the kit as a Claude Code plugin in `.claude/settings.json`. The plugin supplies the

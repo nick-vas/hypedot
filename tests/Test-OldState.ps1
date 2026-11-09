@@ -2,7 +2,8 @@
 # Self-test of the move from the kit's names before Hyperdot. Any command moves a game's .godot/godot-ci-history.jsonl,
 # GUT's .godot-ci-version stamp and ~/.godot-ci to their new names once, keeping what they hold; `init` moves a
 # godot-ci.yml workflow that calls nick-vas/Godot_TestSuite to hyperdot.yml calling nick-vas/hyperdot, and replaces the
-# godot-agent-kit plugin entry in .claude/settings.json; nothing already under the new name is overwritten. No Godot
+# godot-agent-kit plugin entry in .claude/settings.json; nothing already under the new name is overwritten, and an old-name workflow is left
+# as it is (and doctor warns) when another workflow already calls the kit, since two copies cancel each other. No Godot
 # (HOME points at a temporary folder, so the real ~/.hyperdot is untouched).
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
@@ -59,6 +60,31 @@ try {
     Set-Content -LiteralPath (Join-Path $game '.godot/godot-ci-history.jsonl') -Value 'stale'
     pwsh -NoProfile -NonInteractive -File $kit detect -Json -Project $game 2>$null | Out-Null
     Assert-True ((Get-Content -LiteralPath $history | Select-Object -First 1) -eq $line) 'an existing hyperdot-history.jsonl is not overwritten'
+
+    # A game that has both an old-name workflow and a hyperdot.yml (an older init wrote the second): init must not rewrite the old one into a copy of the
+    # new one, or the two run on every push in one concurrency group and cancel each other (Export and Release failed after 0 seconds for a week).
+    $both = Join-Path $temp 'both'
+    New-Item -ItemType Directory -Force (Join-Path $both '.github/workflows') | Out-Null
+    Set-Content -LiteralPath (Join-Path $both 'project.godot') -Value "config_version=5`n`n[application]`n`nconfig/name=""Both""`n"
+    $oldText = "name: Godot`nconcurrency:`n  group: godot-`${{ github.ref }}`n  cancel-in-progress: true`njobs:`n  godot:`n    uses: nick-vas/Godot_TestSuite/.github/workflows/godot.yml@main`n"
+    $newText = "name: Godot`nconcurrency:`n  group: godot-`${{ github.ref }}`n  cancel-in-progress: true`njobs:`n  godot:`n    uses: nick-vas/hyperdot/.github/workflows/godot.yml@v1`n"
+    Set-Content -LiteralPath (Join-Path $both '.github/workflows/godot-ci.yml') -Value $oldText -NoNewline
+    Set-Content -LiteralPath (Join-Path $both '.github/workflows/hyperdot.yml') -Value $newText -NoNewline
+    git -C $both init -q 2>$null
+    $init = pwsh -NoProfile -NonInteractive -File $kit init -Json -Project $both 2>$null | ConvertFrom-Json
+    Assert-True ((Get-Content -LiteralPath (Join-Path $both '.github/workflows/godot-ci.yml') -Raw) -eq $oldText) 'init leaves godot-ci.yml as it is when hyperdot.yml already calls the kit'
+    Assert-True ((Get-Content -LiteralPath (Join-Path $both '.github/workflows/hyperdot.yml') -Raw) -eq $newText -and @(Get-ChildItem -LiteralPath (Join-Path $both '.github/workflows') -File).Count -eq 2) 'and writes no third workflow'
+    Assert-True (@($init.steps | Where-Object { $_.status -eq 'skipped' -and $_.message -match 'godot-ci\.yml calls the kit by its old name and hyperdot\.yml calls it too: delete one' }).Count -eq 1) "and says to delete one: $(@($init.steps | ForEach-Object { $_.message }) -join ' | ')"
+    $doctor = pwsh -NoProfile -NonInteractive -File $kit doctor -Json -Project $both 2>$null | ConvertFrom-Json
+    Assert-True (@($doctor.checks | Where-Object { $_.message -match 'Two workflows call the kit \(.github/workflows/godot-ci\.yml, .github/workflows/hyperdot\.yml\).*share a concurrency group' }).Count -eq 1) 'doctor warns that the two workflows share a concurrency group and cancel each other'
+    # Two workflows in different concurrency groups do not cancel each other: still two runs on every push, but no claim about cancelling.
+    Set-Content -LiteralPath (Join-Path $both '.github/workflows/godot-ci.yml') -Value ($newText -replace 'group: godot-', 'group: other-') -NoNewline
+    $doctor = pwsh -NoProfile -NonInteractive -File $kit doctor -Json -Project $both 2>$null | ConvertFrom-Json
+    $two = @($doctor.checks | Where-Object { $_.message -match 'Two workflows call the kit' })
+    Assert-True ($two.Count -eq 1 -and $two[0].message -notmatch 'cancels') 'in different concurrency groups doctor still warns about two runs, without the cancelling'
+    Remove-Item -LiteralPath (Join-Path $both '.github/workflows/godot-ci.yml')
+    $doctor = pwsh -NoProfile -NonInteractive -File $kit doctor -Json -Project $both 2>$null | ConvertFrom-Json
+    Assert-True (@($doctor.checks | Where-Object { $_.message -match 'Two workflows call the kit' }).Count -eq 0) 'one workflow that calls the kit is not a problem'
 } finally {
     $env:HOME = $saved.home; $env:USERPROFILE = $saved.profile; $env:GODOT_TOOLS_DIR = $saved.tools; $env:GODOT_BIN = $saved.bin
     Remove-Item -LiteralPath $temp -Recurse -Force -ErrorAction SilentlyContinue
