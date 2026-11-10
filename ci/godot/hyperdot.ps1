@@ -68,6 +68,11 @@ param(
     # flaky[] and recorded in the history (status lists the repeat offenders). 0: no retries.
     [ArgumentCompletions('0', '1', '2', '3', '4', '5')]
     [int]$Retry = 0,
+    # status, plan: a time limit in seconds for what can wait on something outside the script (git, a GitHub call, a long folder walk).
+    # status and a plain plan default to 120: when it runs out, what was gathered is printed and "partial" lists the steps that were skipped
+    # and what each waited for. plan -Do sync|move|add|... has no limit unless this is given; a GitHub call that outlives it stops the command
+    # with the error command-timeout. 0 turns the limit off.
+    [ValidateRange(0, 86400)][int]$TimeoutSec = -1,
     # Collect coverage (dotnet, gdunit4, godottest) into one report.
     [switch]$Coverage,
     # Fail when line coverage is below this percentage (implies -Coverage).
@@ -266,6 +271,10 @@ if ($Command -eq 'help') {
 }
 
 $GameArgs = @(Split-GameArgs $GameArgs)
+# -TimeoutSec belongs to the read-only commands; the limit starts before the project is detected, which is a slow step on a large game.
+if ($TimeoutSec -ge 0 -and $Command -notin 'status', 'plan') { Stop-GodotCi "-TimeoutSec is for status and plan, not $Command (a Godot run has HYPERDOT_TIMEOUT)" 'invalid-arguments' }
+$readOnlyCommand = $Command -eq 'status' -or ($Command -eq 'plan' -and $Do -eq 'status')
+Set-CommandDeadline $(if ($TimeoutSec -ge 0) { $TimeoutSec } elseif ($readOnlyCommand) { 120 } else { 0 })
 $info = Get-ProjectInfo -Project $Project -Solution $Solution -GodotVersion $GodotVersion -Runners $Runners -SkipRunners:($Command -eq 'export')
 Move-OldKitState $info.ProjectDir
 $script:KitScript = $PSCommandPath

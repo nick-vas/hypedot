@@ -146,7 +146,8 @@ function Format-RunTime($Time) { ([datetime]$Time).ToUniversalTime().ToString('y
 function Get-GitActivity([string]$Dir) {
     $root = Get-GitRoot $Dir
     if (-not $root) { return $null }
-    $git = { param([string[]]$GitArgs) @(& git -C $root @GitArgs 2>$null) }
+    # Each call is bounded by the command's time limit (-TimeoutSec): one that ran out leaves its field $null and the step is listed in "partial".
+    $git = { param([string[]]$GitArgs) @((Invoke-GitBounded $root $GitArgs 'git activity').Lines) }
     $changed = @(& $git @('log', '--since=7.days', '--name-only', '--format=') | Where-Object { $_ } | Sort-Object -Unique)
     return [ordered]@{
         branch = (& $git @('rev-parse', '--abbrev-ref', 'HEAD') | Select-Object -First 1)
@@ -242,7 +243,7 @@ function Invoke-Status($Info) {
 
     $gddPath = Get-GddPath $Info
     $gdd = if ($gddPath) { Read-Gdd $gddPath } else { $null }
-    $tags = Find-FeatureTags $Info
+    $tags = if (Test-DeadlinePassed) { Add-PartialStep 'feature tags' 'the time limit, before the tests were searched for GDD tags'; @{} } else { Find-FeatureTags $Info }
     $history = @(Read-RunHistory $Info.ProjectDir)
     $runs = Get-LastRuns $history
     $lastTest = $runs.Contains('test') ? $runs['test'] : $null
@@ -352,7 +353,7 @@ function Invoke-Status($Info) {
         entries = @($placeholderReport.entries) }
     foreach ($p in @($placeholderReport.entries | Where-Object { $_.pastDue })) { $warnings.Add("Placeholder $($p.path) was due on $($p.due) (assets.json): replace it, or agree a new date") }
     $git = Get-GitActivity $Info.ProjectDir
-    $inventory = Get-ProjectInventory $Info
+    $inventory = if (Test-DeadlinePassed) { Add-PartialStep 'project inventory' 'the time limit, before the project was read'; $null } else { Get-ProjectInventory $Info }
     # Which kit command to run now (workflow.json): the stage comes from the plan's phase, the files' times from the disk.
     $table = Read-WorkflowTable
     $stage = if (-not $plan) { $null } elseif ($plan.currentPhase) { Get-WorkflowStage $table $plan.currentPhase.id } else { 6 }
@@ -385,9 +386,12 @@ function Invoke-Status($Info) {
     Set-JsonField handoffs $handoffs
     Set-JsonField suggestedCommands $suggested
     Set-JsonField warnings @($warnings)
+    $partial = Get-PartialResult
+    Set-JsonField partial $partial
 
     if (-not $script:JsonMode) {
         Write-Console ''
+        if ($partial) { Write-Console "PARTIAL: $($partial.note). Skipped: $(($partial.skipped | ForEach-Object { "$($_.step) (waiting for $($_.waitingOn))" }) -join '; ')" }
         if ($gdd) {
             Write-Console "GDD: $($gdd.path)$(if ($gdd.draft) { ' (draft)' })"
             if ($firstSession) {
@@ -414,7 +418,7 @@ function Invoke-Status($Info) {
         if ($placeholders.count) { Write-Console "Placeholders: $($placeholders.count) in assets.json ($($placeholders.pastDue) past due)" }
         foreach ($h in $handoffs | Select-Object -First 3) { Write-Console "Handoff $(Format-RunTime $h.time): $($h.subagent) checked $($h.checked): $($h.verdict)" }
         foreach ($c in $suggested) { Write-Console "Run next: $(Format-KitCommand ("$($c.command) $($c.args)").Trim()) ($($c.reason))" }
-        Write-Console "Project: $($inventory.sceneCount) scenes, $($inventory.scriptCount) scripts, $($inventory.testFileCount) test files, $($inventory.todoCount) TODO(s)"
+        if ($inventory) { Write-Console "Project: $($inventory.sceneCount) scenes, $($inventory.scriptCount) scripts, $($inventory.testFileCount) test files, $($inventory.todoCount) TODO(s)" }
         foreach ($w in $warnings) { Write-Console "WARNING: $w" -ForegroundColor Yellow }
     }
 }
