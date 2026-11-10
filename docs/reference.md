@@ -20,6 +20,7 @@ this machine at the Deck's resolution, not a Deck's speed.
 | `-Runners` | detected | `validate`, `architecture`, `dotnet`, `gdunit4`, `godottest`, `gut`, `flows`, `smoke`, `juice`, `playthrough`, `l10n`, `data`, `textsize`, `layout`, `placement`; `none` to only build |
 | `-Filter` | | Passed to each runner's filter |
 | `-Retry` | `0` (off) | `test`: run a runner that failed again, up to this many times (at most 5); a test that passes only on a retry passes but is listed in `flaky[]`, `summary.md` and the run history. Tests in the project's `quarantine.json` (owner and end date each) run but do not fail the run ([json.md](json.md)) |
+| `-TimeoutSec` | `120` for `status` and a plain `plan`, none for `plan -Do sync`/`move`/... | `status`, `plan`: a time limit in seconds for what can wait on something outside the script (git, a GitHub call, a long folder walk); `0` turns it off. When it runs out the result keeps what was gathered and `partial` lists each skipped step and what it waited for ([json.md](json.md)); a GitHub call of `plan -Do sync` that outlives it stops the command with `command-timeout`. Refused on other commands (`invalid-arguments`) |
 | `-Coverage` | off | One merged coverage report |
 | `-MinCoverage` | `0` (off) | Fail below this line coverage percentage |
 | `-Preset` | every preset | `export`: which presets |
@@ -45,6 +46,7 @@ this machine at the Deck's resolution, not a Deck's speed.
 | `-Sessions` | `<project>/playtests/sessions` | `playtest`: the folder of session files to read: the telemetry batches playtest builds wrote or sent (`.json`, one batch or an array; `.jsonl`, one batch a line), searched recursively |
 | `-Resolution` | project setting | `bench`, `shot`: window size, e.g. `1920x1080` |
 | `-RequireResolution` | | `shot`: fail with `shot-size` when a picture is not the size asked for with `-Resolution` (a project whose stretch aspect is `keep` renders at its base size, with bars); without it that is a warning, and `shots[].requested` and `shots[].sizeMatches` say which |
+| `-NameBySize` | off | `shot`: put each picture's own size in its name (`main.1920x1080.png`, with a locale `main.fr.1920x1080.png`), so the pictures of one scene at several sizes sit side by side and a picture that is not the size asked for says so in its name. A `-Baseline` taken before the names carried the size is still found under its old name |
 | `-Baseline` | | `shot`: a folder of earlier screenshots; each new one is compared with the one of the same name (not the `-Output` folder) |
 | `-MaxChangedPercent` | | `shot -Baseline`: fail with `shot-changed` when a picture differs by more than this percentage of pixels, or changed size; without it `-Baseline` only reports |
 | `-Locale`, `-Pseudo` | | `shot`: also take each scene in these locales (`fr,ar,ja`) and pseudolocalized, and fail (`shot-text`) on text that is cut off, off screen or missing glyphs |

@@ -447,8 +447,13 @@ function Invoke-GhProject([string[]]$Arguments) {
     if (-not (Get-Command gh -ErrorAction SilentlyContinue)) {
         Stop-GodotCi 'plan -Do sync needs the GitHub CLI (gh), signed in with the project scope: gh auth login, then gh auth refresh -s project' 'project-credentials'
     }
-    $text = (& gh @Arguments 2>&1 | ForEach-Object { "$_" }) -join "`n"
-    $code = $LASTEXITCODE
+    # Bounded by -TimeoutSec when it is set: a call that outlives it stops the command, naming the call (a hung GitHub call used to stall it for good).
+    $gh = Invoke-ExternalBounded 'gh' $Arguments -MergeStderr
+    if ($gh.TimedOut) {
+        Stop-GodotCi "GitHub project call (gh $($Arguments[0..1] -join ' ')) was still running after the -TimeoutSec limit ($($script:CommandDeadline.Seconds) s) and was stopped: the GitHub call hung or the network is slow. What plan.json already holds is unchanged by this call; raise -TimeoutSec, or run plan -Do sync again later" 'command-timeout'
+    }
+    $text = $gh.Lines -join "`n"
+    $code = $gh.Code
     if ($code -ne 0) {
         $short = ($text -split "`n" | Where-Object { $_.Trim() } | Select-Object -First 3) -join ' '
         if ($text -match 'scope|not logged in|authentication|gh auth login|HTTP 401|GH_TOKEN') {
@@ -466,8 +471,9 @@ function Invoke-GhProjectJson([string[]]$Arguments) {
 
 # The repository (OWNER/NAME) of the game's git origin on github.com, or $null; the new project is linked to it.
 function Get-ProjectRepo([string]$Dir) {
-    $url = (& git -C $Dir remote get-url origin 2>$null | Select-Object -First 1)
-    if ($LASTEXITCODE -eq 0 -and "$url" -match 'github\.com[:/](?<repo>[A-Za-z0-9._-]+/[A-Za-z0-9._-]+?)(?:\.git)?/?$') { return $Matches.repo }
+    $git = Invoke-GitBounded $Dir @('remote', 'get-url', 'origin') 'project repository'
+    $url = $git.Lines | Select-Object -First 1
+    if ($git.Code -eq 0 -and "$url" -match 'github\.com[:/](?<repo>[A-Za-z0-9._-]+/[A-Za-z0-9._-]+?)(?:\.git)?/?$') { return $Matches.repo }
     return $null
 }
 
@@ -782,9 +788,12 @@ function Invoke-Plan($Info, [string]$Action, [string]$Id, [string]$Game, [string
     Set-JsonField projectBoard (Get-PlanProjectBoard $plan)
     Set-JsonField release $state.release
     Set-JsonField warnings $state.warnings
+    Set-JsonField partial (Get-PartialResult)
 
     if ($Action -in 'add', 'move', 'remove', 'sync', 'link') { return }
     Write-Console ''
+    $partial = Get-PartialResult
+    if ($partial) { Write-Console "PARTIAL: $($partial.note). Skipped: $(($partial.skipped | ForEach-Object { "$($_.step) (waiting for $($_.waitingOn))" }) -join '; ')" }
     foreach ($phase in $state.phases) {
         $label = $phase.complete ? 'done   ' : ($phase.id -eq $state.current.id ? 'CURRENT' : 'later  ')
         Write-Console ("{0} {1}  {2}/{3} gates" -f $label, $phase.name.PadRight(26), @($phase.gates | Where-Object done).Count, $phase.gates.Count)

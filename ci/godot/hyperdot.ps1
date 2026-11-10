@@ -68,6 +68,11 @@ param(
     # flaky[] and recorded in the history (status lists the repeat offenders). 0: no retries.
     [ArgumentCompletions('0', '1', '2', '3', '4', '5')]
     [int]$Retry = 0,
+    # status, plan: a time limit in seconds for what can wait on something outside the script (git, a GitHub call, a long folder walk).
+    # status and a plain plan default to 120: when it runs out, what was gathered is printed and "partial" lists the steps that were skipped
+    # and what each waited for. plan -Do sync|move|add|... has no limit unless this is given; a GitHub call that outlives it stops the command
+    # with the error command-timeout. 0 turns the limit off.
+    [ValidateRange(0, 86400)][int]$TimeoutSec = -1,
     # Collect coverage (dotnet, gdunit4, godottest) into one report.
     [switch]$Coverage,
     # Fail when line coverage is below this percentage (implies -Coverage).
@@ -132,6 +137,9 @@ param(
     [switch]$Pseudo,
     # shot: fail (shot-size) when a picture is not the size asked for with -Resolution (for example a project whose stretch aspect is keep renders at its base size); without it that is a warning.
     [switch]$RequireResolution,
+    # shot: put each picture's own size in its name (main.1920x1080.png, with a locale main.fr.1920x1080.png), so the pictures of one scene at several
+    # sizes sit side by side. A -Baseline taken before the names carried the size is still found under its old name.
+    [switch]$NameBySize,
     # shot: also save each picture as people with colour blindness see it: protan, deutan, tritan (scene.<kind>.png).
     [string[]]$ColorVision,
     # shot: every picture is checked against the palette table in docs/STYLE.md when there is one (a warning only); fail
@@ -266,6 +274,10 @@ if ($Command -eq 'help') {
 }
 
 $GameArgs = @(Split-GameArgs $GameArgs)
+# -TimeoutSec belongs to the read-only commands; the limit starts before the project is detected, which is a slow step on a large game.
+if ($TimeoutSec -ge 0 -and $Command -notin 'status', 'plan') { Stop-GodotCi "-TimeoutSec is for status and plan, not $Command (a Godot run has HYPERDOT_TIMEOUT)" 'invalid-arguments' }
+$readOnlyCommand = $Command -eq 'status' -or ($Command -eq 'plan' -and $Do -eq 'status')
+Set-CommandDeadline $(if ($TimeoutSec -ge 0) { $TimeoutSec } elseif ($readOnlyCommand) { 120 } else { 0 })
 $info = Get-ProjectInfo -Project $Project -Solution $Solution -GodotVersion $GodotVersion -Runners $Runners -SkipRunners:($Command -eq 'export')
 Move-OldKitState $info.ProjectDir
 $script:KitScript = $PSCommandPath
@@ -679,6 +691,7 @@ $scenes = @($Scene | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim
 if ($Command -in 'bench', 'audio' -and $scenes.Count -gt 1) {
     Stop-GodotCi "$Command runs one scene, but -Scene names $($scenes.Count): $($scenes -join ', '). Run $Command once per scene" 'invalid-arguments'
 }
+if ($NameBySize -and $Command -ne 'shot') { Stop-GodotCi "-NameBySize is for shot, not $Command" 'invalid-arguments' }
 # bench -Sweep, checked before Godot is set up.
 if ($Sweep -and $Command -ne 'bench') { Stop-GodotCi "-Sweep is for bench (one run per value), not $Command" 'invalid-arguments' }
 $benchSweep = if ($Sweep) { ConvertFrom-BenchSweep $Sweep } else { $null }
@@ -762,7 +775,7 @@ switch ($Command) {
     'shot' {
         Invoke-Setup; Invoke-Build
         Invoke-Shot -Info $info -Scene $Scene -Frames $Frames -Resolution $Resolution -GameArgs $GameArgs -Baseline $Baseline -MaxChangedPercent $MaxChangedPercent -Locale $Locale -Pseudo:$Pseudo -ColorVision $ColorVision `
-            -MaxOffPalettePercent $MaxOffPalettePercent -PaletteTolerance $PaletteTolerance -OutputDir $commandResultsDir -GpuValidation:$GpuValidation -RequireResolution:$RequireResolution
+            -MaxOffPalettePercent $MaxOffPalettePercent -PaletteTolerance $PaletteTolerance -OutputDir $commandResultsDir -GpuValidation:$GpuValidation -RequireResolution:$RequireResolution -NameBySize:$NameBySize
     }
     'deck' {
         Invoke-Setup; Invoke-Build

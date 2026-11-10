@@ -10,7 +10,7 @@ gives the percentages and the floors CI holds them to.
 | Part | Items | Covered |
 |---|---|---|
 | [Commands](#commands) | 19 | 19 |
-| [Error codes](#error-codes) | 62 | 60 |
+| [Error codes](#error-codes) | 63 | 61 |
 | [Library files](#library-files) | 38 | 38 |
 | [Tools](#tools) | 23 | 23 |
 | [Skills](#skills) | 53 | 53 |
@@ -70,6 +70,7 @@ The codes in [`docs/json.md`](json.md#error-codes), and the tests that raise the
 | `auto-gate` | `Test-Plan.ps1` |
 | `unknown-task` | `Test-ErrorCodes.ps1`, `Test-Plan.ps1`, `Test-ProjectSync.ps1` |
 | `wip-limit` | `Test-ErrorCodes.ps1`, `Test-Plan.ps1` |
+| `command-timeout` | `Test-Plan.ps1` |
 | `project-credentials` | `Test-ProjectSync.ps1` |
 | `project-error` | `Test-ProjectSync.ps1` |
 | `project-column-missing` | `Test-ProjectSync.ps1` |
@@ -123,7 +124,7 @@ The codes in [`docs/json.md`](json.md#error-codes), and the tests that raise the
 | `Assets.ps1` | 12/12 | `Test-AssetManifest.ps1`, `Test-Addons.ps1`, `Test-Audio.ps1`, `Test-Context.ps1`, `Test-DoctorFixture.ps1`, `Test-ErrorCodes.ps1`, `Test-Flaky.ps1`, `Test-OldState.ps1` and 6 more |
 | `Audio.ps1` | 10/11 | `Test-Localization.ps1`, `Test-SelectJobs.ps1`, `Test-Audio.ps1`, `Test-ErrorCodes.ps1`, `Test-AssetManifest.ps1`, `Test-Addons.ps1`, `Test-Context.ps1`, `Test-DoctorFixture.ps1` and 6 more |
 | `BuildSize.ps1` | 4/4 | `Test-BuildSize.ps1`, `Test-SelectJobs.ps1`, `Test-ErrorCodes.ps1` |
-| `Common.ps1` | 46/56 | `Test-ErrorKeys.ps1`, `Test-Flaky.ps1`, `Test-BenchSweep.ps1`, `Test-GpuValidation.ps1`, `Test-Localization.ps1`, `Test-Flows.ps1`, `Test-Palette.ps1`, `Test-Playthrough.ps1` and 54 more |
+| `Common.ps1` | 46/63 | `Test-ErrorKeys.ps1`, `Test-Flaky.ps1`, `Test-BenchSweep.ps1`, `Test-GpuValidation.ps1`, `Test-Localization.ps1`, `Test-Flows.ps1`, `Test-Palette.ps1`, `Test-Playthrough.ps1` and 54 more |
 | `Context.ps1` | 8/10 | `Test-Context.ps1`, `Test-Help.ps1`, `Test-DoctorFixture.ps1`, `Test-Addons.ps1`, `Test-AssetManifest.ps1`, `Test-Audio.ps1`, `Test-ErrorCodes.ps1`, `Test-Flaky.ps1` and 5 more |
 | `Credits.ps1` | 6/7 | `Test-Credits.ps1`, `Test-ErrorCodes.ps1` |
 | `Data.ps1` | 0/20 | `Test-Data.ps1` |
@@ -135,7 +136,7 @@ The codes in [`docs/json.md`](json.md#error-codes), and the tests that raise the
 | `Juice.ps1` | 1/4 | `Test-JuiceLog.ps1`, `Test-AssetManifest.ps1`, `Test-ErrorKeys.ps1`, `Test-Flaky.ps1`, `Test-Handoffs.ps1`, `Test-Plan.ps1` |
 | `Layout.ps1` | 3/3 | `Test-Deck.ps1`, `Test-Layout.ps1` |
 | `Localization.ps1` | 19/22 | `Test-Localization.ps1`, `Test-Data.ps1`, `Test-Detect.ps1`, `Test-Addons.ps1`, `Test-AssetManifest.ps1`, `Test-Audio.ps1`, `Test-BenchHotspots.ps1`, `Test-BenchSweep.ps1` and 28 more |
-| `Measure.ps1` | 11/12 | `Test-GpuValidation.ps1`, `Test-SelectJobs.ps1`, `Test-BenchSweep.ps1`, `Test-Deck.ps1`, `Test-ErrorCodes.ps1`, `Test-BenchHotspots.ps1`, `Test-Capture.ps1`, `Test-ColorVision.ps1` and 36 more |
+| `Measure.ps1` | 11/13 | `Test-GpuValidation.ps1`, `Test-SelectJobs.ps1`, `Test-BenchSweep.ps1`, `Test-Deck.ps1`, `Test-ErrorCodes.ps1`, `Test-BenchHotspots.ps1`, `Test-Capture.ps1`, `Test-ColorVision.ps1` and 36 more |
 | `Palette.ps1` | 3/3 | `Test-Palette.ps1`, `Test-Capture.ps1`, `Test-ColorVision.ps1`, `Test-Deck.ps1`, `Test-ErrorCodes.ps1`, `Test-GpuValidation.ps1`, `Test-ShotChanged.ps1` |
 | `Placement.ps1` | 2/2 | `Test-Placement.ps1` |
 | `Plan.ps1` | 31/32 | `Test-Plan.ps1`, `Test-ProjectSync.ps1`, `Test-ErrorCodes.ps1`, `Test-AssetManifest.ps1`, `Test-ErrorKeys.ps1`, `Test-Flaky.ps1`, `Test-Handoffs.ps1` |

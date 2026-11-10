@@ -51,6 +51,7 @@ Branch on `error.code`; `message` can change.
 | `doctor-problems` | `doctor` found `FAIL` checks | `checks[]` |
 | `invalid-arguments` | Any command: a parameter or environment variable the kit cannot use (an unknown command, flag or runner, a value outside a parameter's set, a word that belongs to no parameter, several `-Scene`s for `bench` or `audio`, `-Seconds` of 0 or less for `bench`, `deck` or `audio -Mix`, `-Frames` below 1 for `test`, `shot`, `deck` or `export -Run`, `-HotspotCell` of 0 or less for `playtest`, `-MaxGrowthMbPerHour` with a `soak` `-Seconds` too short for 3 memory samples, two `sfx` sounds that would share a file, a malformed `-Sweep` or one on another command, a bad `HYPERDOT_TIMEOUT` or `HYPERDOT_IGNORE_ERRORS`, an out-of-range percentage, a misspelt sound); checked before the work starts where it can be | `error.message` |
 | `no-plan`, `invalid-plan`, `unknown-gate`, `auto-gate`, `unknown-task`, `wip-limit` | `plan` problems (`wip-limit`: too many tasks in `doing`) | - |
+| `command-timeout` | a GitHub call of `plan -Do sync` outlived `-TimeoutSec` and was stopped (the message names the call); `status` and a read-only `plan` never fail on it, they return a `partial` result | - |
 | `project-credentials`, `project-error`, `project-column-missing` | `plan -Do sync` could not use the GitHub Project (the GitHub CLI missing or refused: sign in with the project scope; a call failed; the Column field lacks an option) | - |
 | `invalid-mcp-config` | `.mcp.json` exists but is not valid JSON | - |
 | `aseprite-not-found` | `init -McpAseprite` names no Aseprite program (a path to it or to its install folder) | - |
@@ -440,6 +441,7 @@ in `.gitignore`).
 - `features[]`: `id` (F1...), `title`, `priority`, `fun[]` (the kinds of fun on its `Fun:` line), `doneWhen[]`, `taggedTests[]` (`file`, `line` of each `GDD:F<n>` tag in
   tests, flows, code and `playthrough.json`; stubs do not count), `tasks[]` (`id`, `column`), `testedAndPassing` (tagged tests exist and the latest full test run passed: every runner of the project, no `-Filter`).
 - `plan`: `path`, `board`, `currentPhase`, `openGates[]`, `wipLimit`, `columns`, `tasks[]` as for `plan`; `null` without a plan, or with one `plan` would refuse as `invalid-plan` (a warning says why).
+- `partial`: `null`, or, when `-TimeoutSec` (default 120) ran out before everything was read, `{ reason: "timeout", timeoutSec, skipped[], note }`: `skipped[]` holds `step` (`git activity`, `git repository`, `feature tags`, `project inventory`, `project files`, ...) and `waitingOn` (the git subcommand, the folder it was reading, or the time limit) of each step that was cut short or skipped; its fields in the result are `null` or empty. The same field is on `plan`'s result.
 - `decisions[]`: `number`, `title`, `status` (Proposed, Accepted, ...), `feature`, `path` of each file in `docs/decisions/`.
 - `runs`: the latest history entry per command (`test`, `build`, ...), as in `.godot/hyperdot-history.jsonl`.
 - `testDuration`: `runners` (the usual scope), `runs` and `medianSeconds` (the last 10 passing test runs of that scope without

@@ -519,6 +519,46 @@ try {
     Remove-Item -LiteralPath $multi -Recurse -Force -ErrorAction SilentlyContinue
 }
 
+# -TimeoutSec: a git or gh that hangs costs the limit, not the run. A fake git and gh that sleep stand in for an editor holding git and a hung GitHub call
+# (a shell script, so not on Windows). status and a plain plan print what they gathered, with "partial" naming each step that was skipped and what it waited
+# for; plan -Do sync stops with command-timeout and names the call; -TimeoutSec on another command is refused.
+if (-not $IsWindows) {
+    $slow = Join-Path ([IO.Path]::GetTempPath()) "plan-slow-$([guid]::NewGuid().ToString('N').Substring(0, 8))"
+    $hang = Join-Path ([IO.Path]::GetTempPath()) "plan-hang-$([guid]::NewGuid().ToString('N').Substring(0, 8))"
+    $savedPath = $env:PATH
+    try {
+        New-Item -ItemType Directory -Force $slow, $hang | Out-Null
+        Set-Content -LiteralPath (Join-Path $hang 'project.godot') -Value "config_version=5`n`n[application]`n`nconfig/name=`"Hang`"`n"
+        pwsh -NoProfile -NonInteractive -File $ci plan -Do init -Project $hang *> $null
+        # Real git first, for the repository the project is in; then fakes that never answer.
+        & git -C $hang init -q
+        foreach ($name in 'git', 'gh') {
+            Set-Content -LiteralPath (Join-Path $slow $name) -Value "#!/bin/sh`nexec sleep 60`n"
+            & chmod +x (Join-Path $slow $name)
+        }
+        $env:PATH = "$slow$([IO.Path]::PathSeparator)$env:PATH"
+        $clock = [System.Diagnostics.Stopwatch]::StartNew()
+        $st = pwsh -NoProfile -NonInteractive -File $ci status -Json -TimeoutSec 3 -Project $hang 2>$null | ConvertFrom-Json
+        $took = $clock.Elapsed.TotalSeconds
+        Assert-True ($st.ok -and $st.partial -and $st.partial.reason -eq 'timeout' -and $st.partial.timeoutSec -eq 3 -and @($st.partial.skipped).Count -ge 1 -and @($st.partial.skipped | Where-Object waitingOn -like 'git *').Count -ge 1) "status with a git that never answers still returns, with partial naming what it waited for: $(@($st.partial.skipped | ForEach-Object { "$($_.step) <- $($_.waitingOn)" }) -join '; ')"
+        Assert-True ($took -lt 40) "status with a 3 s limit returned in $([math]::Round($took, 1)) s, not after the fake git's 60 s"
+        Assert-True ($null -ne $st.plan -and $null -ne $st.warnings) 'what was gathered without git (the plan, the warnings) is still in the result'
+        $pl = pwsh -NoProfile -NonInteractive -File $ci plan -Json -TimeoutSec 3 -Project $hang 2>$null | ConvertFrom-Json
+        Assert-True ($pl.ok -and $pl.partial -and $pl.partial.timeoutSec -eq 3) 'a plain plan reports the same partial result'
+        $env:PATH = $savedPath
+        $sy = pwsh -NoProfile -NonInteractive -File $ci status -Json -Project $hang 2>$null | ConvertFrom-Json
+        Assert-True ($sy.ok -and $null -eq $sy.partial) 'without a hang there is no partial field value'
+        $env:PATH = "$slow$([IO.Path]::PathSeparator)$env:PATH"
+        $sync = pwsh -NoProfile -NonInteractive -File $ci plan -Do sync -Board 'someone/1' -TimeoutSec 3 -Json -Project $hang 2>$null | ConvertFrom-Json
+        Assert-True (-not $sync.ok -and $sync.error.code -eq 'command-timeout' -and $sync.error.message -match 'gh project') "plan -Do sync with a gh that never answers stops with command-timeout naming the call: $($sync.error.message)"
+    } finally {
+        $env:PATH = $savedPath
+        Remove-Item -LiteralPath $slow, $hang -Recurse -Force -ErrorAction SilentlyContinue
+    }
+    $other = pwsh -NoProfile -NonInteractive -File $ci doctor -Json -TimeoutSec 5 -Project $dir 2>$null | ConvertFrom-Json
+    Assert-True (-not $other.ok -and $other.error.code -eq 'invalid-arguments' -and $other.error.message -match 'status and plan') '-TimeoutSec on another command is refused (invalid-arguments)'
+}
+
 if ($failures.Count) { throw "$($failures.Count) plan check(s) failed" }
 Write-Host 'plan self-test passed'
 # One kit run failed on purpose (the refused gate); GitHub's pwsh wrapper would exit with its code.
