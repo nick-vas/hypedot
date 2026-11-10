@@ -136,7 +136,7 @@ The codes in [`docs/json.md`](json.md#error-codes), and the tests that raise the
 | `Juice.ps1` | 1/4 | `Test-JuiceLog.ps1`, `Test-AssetManifest.ps1`, `Test-ErrorKeys.ps1`, `Test-Flaky.ps1`, `Test-Handoffs.ps1`, `Test-Plan.ps1` |
 | `Layout.ps1` | 3/3 | `Test-Deck.ps1`, `Test-Layout.ps1` |
 | `Localization.ps1` | 19/22 | `Test-Localization.ps1`, `Test-Data.ps1`, `Test-Detect.ps1`, `Test-Addons.ps1`, `Test-AssetManifest.ps1`, `Test-Audio.ps1`, `Test-BenchHotspots.ps1`, `Test-BenchSweep.ps1` and 28 more |
-| `Measure.ps1` | 11/12 | `Test-GpuValidation.ps1`, `Test-SelectJobs.ps1`, `Test-BenchSweep.ps1`, `Test-Deck.ps1`, `Test-ErrorCodes.ps1`, `Test-BenchHotspots.ps1`, `Test-Capture.ps1`, `Test-ColorVision.ps1` and 36 more |
+| `Measure.ps1` | 11/13 | `Test-GpuValidation.ps1`, `Test-SelectJobs.ps1`, `Test-BenchSweep.ps1`, `Test-Deck.ps1`, `Test-ErrorCodes.ps1`, `Test-BenchHotspots.ps1`, `Test-Capture.ps1`, `Test-ColorVision.ps1` and 36 more |
 | `Palette.ps1` | 3/3 | `Test-Palette.ps1`, `Test-Capture.ps1`, `Test-ColorVision.ps1`, `Test-Deck.ps1`, `Test-ErrorCodes.ps1`, `Test-GpuValidation.ps1`, `Test-ShotChanged.ps1` |
 | `Placement.ps1` | 2/2 | `Test-Placement.ps1` |
 | `Plan.ps1` | 31/32 | `Test-Plan.ps1`, `Test-ProjectSync.ps1`, `Test-ErrorCodes.ps1`, `Test-AssetManifest.ps1`, `Test-ErrorKeys.ps1`, `Test-Flaky.ps1`, `Test-Handoffs.ps1` |

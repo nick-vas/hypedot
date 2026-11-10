@@ -137,6 +137,9 @@ param(
     [switch]$Pseudo,
     # shot: fail (shot-size) when a picture is not the size asked for with -Resolution (for example a project whose stretch aspect is keep renders at its base size); without it that is a warning.
     [switch]$RequireResolution,
+    # shot: put each picture's own size in its name (main.1920x1080.png, with a locale main.fr.1920x1080.png), so the pictures of one scene at several
+    # sizes sit side by side. A -Baseline taken before the names carried the size is still found under its old name.
+    [switch]$NameBySize,
     # shot: also save each picture as people with colour blindness see it: protan, deutan, tritan (scene.<kind>.png).
     [string[]]$ColorVision,
     # shot: every picture is checked against the palette table in docs/STYLE.md when there is one (a warning only); fail
@@ -688,6 +691,7 @@ $scenes = @($Scene | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim
 if ($Command -in 'bench', 'audio' -and $scenes.Count -gt 1) {
     Stop-GodotCi "$Command runs one scene, but -Scene names $($scenes.Count): $($scenes -join ', '). Run $Command once per scene" 'invalid-arguments'
 }
+if ($NameBySize -and $Command -ne 'shot') { Stop-GodotCi "-NameBySize is for shot, not $Command" 'invalid-arguments' }
 # bench -Sweep, checked before Godot is set up.
 if ($Sweep -and $Command -ne 'bench') { Stop-GodotCi "-Sweep is for bench (one run per value), not $Command" 'invalid-arguments' }
 $benchSweep = if ($Sweep) { ConvertFrom-BenchSweep $Sweep } else { $null }
@@ -771,7 +775,7 @@ switch ($Command) {
     'shot' {
         Invoke-Setup; Invoke-Build
         Invoke-Shot -Info $info -Scene $Scene -Frames $Frames -Resolution $Resolution -GameArgs $GameArgs -Baseline $Baseline -MaxChangedPercent $MaxChangedPercent -Locale $Locale -Pseudo:$Pseudo -ColorVision $ColorVision `
-            -MaxOffPalettePercent $MaxOffPalettePercent -PaletteTolerance $PaletteTolerance -OutputDir $commandResultsDir -GpuValidation:$GpuValidation -RequireResolution:$RequireResolution
+            -MaxOffPalettePercent $MaxOffPalettePercent -PaletteTolerance $PaletteTolerance -OutputDir $commandResultsDir -GpuValidation:$GpuValidation -RequireResolution:$RequireResolution -NameBySize:$NameBySize
     }
     'deck' {
         Invoke-Setup; Invoke-Build
