@@ -151,10 +151,6 @@ Each needs the owner: paste the text, save the pages and attach them, or allow t
 - **thinkingwithtype.com, historyoftype.com.** No connection (closed after ten seconds; 502). They may be down or denied; the
   list called the second "free" and that is unconfirmed.
 
-### Add-on release zips not read
-
-- **godot-luaAPI v2.1-beta11** (canary issue 202). The release exists (tags v2.1-beta10 and v2.1-beta11, listed with `git ls-remote`), but its asset names and the folder inside its zip cannot be read from the build environment: `github.com` pages and the API answer 403 and only git reads are served. To finish: paste the release page's asset names (or allow `github.com` and `objects.githubusercontent.com` for a session), then add `releaseZip` to the `godot-luaapi` entry in `ci/godot/addons-status.json` (the format is in `docs/addons.md`). The repository itself is archived (README, default branch unchanged since 2024-12-28), so the status `archived` does not change.
-
 ### CI supply chain (found in the review of the CI configuration)
 
 - **Move the `web` job back to `ubuntu-latest`.** It runs on `ubuntu-24.04` since `ubuntu-latest` became 26.04: there the
@@ -258,9 +254,6 @@ Each needs the owner: paste the text, save the pages and attach them, or allow t
   (the folders inside them are confirmed, `docs/addons.md`). The canary's first run with API access fills them in; or run
   `gh api repos/<owner>/<repo> --jq .archived` for each from a machine that can. Godot-PerfBullets has no release, so no zip
   is checked for it until it gets one (the canary reports that).
-- **godot-luaAPI's release zip.** Its entry in `addons-status.json` (status `archived`) was written from the repository at
-  f61bfa7; the folder inside its newest release zip (`addons/luaAPI`) and GitHub's `archived` flag are still unread, because
-  the sandbox could not reach the release; the weekly canary fills both in.
 - **A field test on someone else's game.** `doctor`, `test` and `export` on OpenLiberty (MIT, Godot 4.7, GDScript, no tests), the
   C# template, Maaack's template and Crystal Bit's template named in `docs/awesome-lists.md` would show what the kit says about
   real code. Needs a machine with Godot; the

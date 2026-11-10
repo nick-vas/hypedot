@@ -108,7 +108,13 @@
       "fix": "Use lua-gdextension instead (docs/addons.md) and remove addons/luaAPI",
       "archived": null,
       "head": "f61bfa768a0b0a642dcb2632ff33f3bd95e29d70",
-      "confirmed": "2026-10-29 from the repository at f61bfa7 (2024-12-28): folder addons/luaAPI (project/addons/luaAPI/), file luaAPI.gdextension and entry_symbol luaAPI_library_init (compatibility_minimum 4.2) from project/addons/luaAPI/luaAPI.gdextension. Its newest tag is v2.1-beta9; a release zip was not read, so the folder inside it is not confirmed and there is no releaseZip (the canary checks it once it can reach the release). archived (GitHub's flag) not read: the README says it is archived. 2026-11-03 from a clone: the default branch is still at f61bfa7 (2024-12-28) and the README still opens with \"Archived!\"; the tags now run to v2.1-beta11 (git ls-remote), and the release assets could not be listed from the sandbox (github.com answered 403), so the folder inside a release zip is still not confirmed and there is no releaseZip (docs/roadmap.md, To do)"
+      "releaseZip": {
+        "tag": "v2.1-beta11",
+        "asset": "gdextension.zip",
+        "prefix": "container/",
+        "checked": "2026-11-10"
+      },
+      "confirmed": "2026-10-29 from the repository at f61bfa7 (2024-12-28): folder addons/luaAPI (project/addons/luaAPI/), file luaAPI.gdextension and entry_symbol luaAPI_library_init (compatibility_minimum 4.2) from project/addons/luaAPI/luaAPI.gdextension. Its newest tag is v2.1-beta9; a release zip was not read, so the folder inside it is not confirmed and there is no releaseZip (the canary checks it once it can reach the release). archived (GitHub's flag) not read: the README says it is archived. 2026-11-03 from a clone: the default branch is still at f61bfa7 (2024-12-28) and the README still opens with \"Archived!\"; the tags now run to v2.1-beta11 (git ls-remote), and the release assets could not be listed from the sandbox (github.com answered 403), so the folder inside a release zip was still not confirmed. 2026-11-10 from the release zip (listed with Python's zipfile, never run): v2.1-beta11 has the asset gdextension.zip (found by its download URL, which answered 200), which holds container/addons/luaAPI/luaAPI.gdextension (entry_symbol luaAPI_library_init, compatibility_minimum 4.2, no maximum), so the folder to copy sits under a wrapper folder (prefix container/) and matches the recorded one; the default branch is unchanged. archived (GitHub's flag) is still not read"
     }
   ]
 }

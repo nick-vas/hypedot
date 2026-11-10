@@ -174,7 +174,7 @@ finds nothing to check because such a game has no `addons/` folder for it. And w
 
 Do not use: **godot-luaAPI** ([WeaselGames/godot_luaAPI](https://github.com/WeaselGames/godot_luaAPI)) says "Archived!" on its first
 README line and was built for Godot 4.1 (last commit 2024-12-28); use lua-gdextension above. `doctor` now flags
-`addons/luaAPI` from the known-status list; the folder inside a release zip is not confirmed yet (`roadmap.md`).
+`addons/luaAPI` from the known-status list. The folder inside its newest release zip (v2.1-beta11, `gdextension.zip`) is `container/addons/luaAPI`, as recorded.
 
 Read and left out, with the reason: Quest Manager (Questify covers it), QuestSystem (another GDScript quest manager),
 Inventory Manager (trivial to write), Shaker (unmaintained since 2024-09), Godot Radial Menu (shader-drawn, poor for gamepad

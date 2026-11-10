@@ -97,11 +97,15 @@ A project whose stretch aspect is `keep` (the default) renders at its base size 
 ### status
 Everything computable about where the game is, in one read-only pass: GDD features, tagged tests, plan, runs, git.
 
-    hyperdot.ps1 status -Json
+    hyperdot.ps1 status -Json [-TimeoutSec 120]
     hyperdot.ps1 status -Handoff godot-verifier -Checked <what> -Verdict <answer>
 
 suggestedCommands[] says which commands are due and why (when to run what: docs/workflow.md). /game judges what it returns. -Handoff records one subagent handoff in .godot/hyperdot-handoffs.jsonl (the newest 200
 are kept); status returns the newest as handoffs[].
+-TimeoutSec (status and plan; default 120 for status and a plain plan, none for plan -Do sync|move|...; 0 turns it off) bounds what can wait on
+something outside the script: git, a GitHub call, a long folder walk. When it runs out status and plan still return what they gathered, `partial` lists
+the steps skipped and what each waited for (an editor holding git, a slow folder), and the text output starts with PARTIAL. A GitHub call of
+plan -Do sync that outlives it stops the command with `command-timeout`, naming the call.
 
 ### audio
 Loudness and true peak of the game's sound files by category; -Mix also records and judges the game's own mix.

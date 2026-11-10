@@ -108,9 +108,9 @@ function Start-RunHistory([string]$Command, [string]$ProjectDir) {
 # The commit checked out in $Dir (short hash), or $null outside git. Uncommitted changes are not part of it.
 function Get-HeadCommit([string]$Dir) {
     if (-not (Get-Command git -ErrorAction SilentlyContinue)) { return $null }
-    $hash = @(& git -C $Dir rev-parse --short HEAD 2>$null)
-    if ($LASTEXITCODE -ne 0 -or $hash.Count -eq 0) { return $null }
-    return "$($hash[0])".Trim()
+    $git = Invoke-GitBounded $Dir @('rev-parse', '--short', 'HEAD') 'head commit'
+    if ($git.Code -ne 0 -or $git.Lines.Count -eq 0) { return $null }
+    return "$($git.Lines[0])".Trim()
 }
 
 # The run log as it is now, while the run still writes it (shared read, so Windows does not refuse it).
@@ -289,6 +289,71 @@ function Invoke-Logged {
     $process.WaitForExit()
     if ($timedOut) { return 124 }
     return $process.ExitCode
+}
+
+# A time limit for a read-only command (status, plan), set by -TimeoutSec: every step that can wait on something outside the script (git, gh,
+# a long folder walk) is bounded by what is left of it, and a step that ran out is skipped and listed in the result's "partial" field, with
+# what it was waiting for, so a hang on one thing (an editor holding git, a GitHub call) costs the limit and not the whole run.
+$script:CommandDeadline = $null
+$script:PartialSteps = [System.Collections.Generic.List[object]]::new()
+function Set-CommandDeadline([int]$Seconds) {
+    $script:PartialSteps.Clear()
+    $script:CommandDeadline = if ($Seconds -gt 0) { [pscustomobject]@{ Seconds = $Seconds; Clock = [System.Diagnostics.Stopwatch]::StartNew() } } else { $null }
+}
+# Milliseconds left, 0 when the limit has passed, $null without a limit.
+function Get-DeadlineLeftMs {
+    if (-not $script:CommandDeadline) { return $null }
+    return [long][Math]::Max(0, $script:CommandDeadline.Seconds * 1000 - $script:CommandDeadline.Clock.ElapsedMilliseconds)
+}
+function Test-DeadlinePassed { $left = Get-DeadlineLeftMs; return ($null -ne $left -and $left -le 0) }
+# Notes a step that was cut short or skipped; the same step is listed once.
+function Add-PartialStep([string]$Step, [string]$WaitingOn) {
+    if (@($script:PartialSteps | Where-Object { $_.step -eq $Step }).Count -gt 0) { return }
+    $script:PartialSteps.Add([ordered]@{ step = $Step; waitingOn = $WaitingOn })
+}
+# The result's "partial" field: $null when nothing was cut short.
+function Get-PartialResult {
+    if ($script:PartialSteps.Count -eq 0) { return $null }
+    return [ordered]@{ reason = 'timeout'; timeoutSec = $script:CommandDeadline.Seconds
+        skipped = @($script:PartialSteps); note = "The time limit (-TimeoutSec $($script:CommandDeadline.Seconds)) ran out: the facts below are what was gathered; raise -TimeoutSec, or run the command again once what it waited for answers" }
+}
+
+# Runs a program for its output, bounded by what is left of the command's time limit (none: it waits as long as the program runs). Returns
+# Lines (stdout, with stderr after it when $MergeStderr), the exit code, and TimedOut: a program that outlives the limit is stopped with its
+# children and returns 124; with the limit already passed nothing is started. Never throws for a missing program: Code is 127.
+function Invoke-ExternalBounded([string]$FilePath, [string[]]$ArgumentList = @(), [switch]$MergeStderr) {
+    if (Test-DeadlinePassed) { return [pscustomobject]@{ Lines = @(); Code = 124; TimedOut = $true } }
+    $command = @(Get-Command $FilePath -CommandType Application -ErrorAction SilentlyContinue)
+    if ($command.Count -eq 0) { return [pscustomobject]@{ Lines = @(); Code = 127; TimedOut = $false } }
+    $info = [System.Diagnostics.ProcessStartInfo]::new($command[0].Source)
+    foreach ($argument in $ArgumentList) { $info.ArgumentList.Add($argument) }
+    $info.UseShellExecute = $false
+    $info.RedirectStandardOutput = $true
+    $info.RedirectStandardError = $true
+    $info.StandardOutputEncoding = [System.Text.UTF8Encoding]::new($false)
+    $info.StandardErrorEncoding = [System.Text.UTF8Encoding]::new($false)
+    $process = [System.Diagnostics.Process]::Start($info)
+    $out = $process.StandardOutput.ReadToEndAsync()
+    $err = $process.StandardError.ReadToEndAsync()
+    $left = Get-DeadlineLeftMs
+    $exited = if ($null -eq $left) { $process.WaitForExit(); $true } else { $process.WaitForExit([int][Math]::Min([int]::MaxValue, $left)) }
+    if (-not $exited) {
+        try { $process.Kill($true) } catch [System.InvalidOperationException] { Write-Verbose 'It exited meanwhile.' }
+        $process.WaitForExit()
+        return [pscustomobject]@{ Lines = @(); Code = 124; TimedOut = $true }
+    }
+    $process.WaitForExit()   # the reads finish once the pipes close
+    $text = $out.GetAwaiter().GetResult()
+    if ($MergeStderr) { $text += $err.GetAwaiter().GetResult() }
+    return [pscustomobject]@{ Lines = @($text -split "`r?`n" | Where-Object { $_ -ne '' }); Code = $process.ExitCode; TimedOut = $false }
+}
+
+# git in $Dir, bounded by the command's time limit; a call that ran out is noted as a partial step ($What names the step, the git
+# subcommand is what it waited for). Returns the same object as Invoke-ExternalBounded.
+function Invoke-GitBounded([string]$Dir, [string[]]$GitArgs, [string]$What) {
+    $result = Invoke-ExternalBounded 'git' (@('-C', $Dir) + $GitArgs)
+    if ($result.TimedOut) { Add-PartialStep $What "git $($GitArgs[0])" }
+    return $result
 }
 
 # True for an exit code that is a crash: 128 and up is a signal (134 is an abort), a negative one is a Windows NTSTATUS code.
@@ -593,6 +658,8 @@ function Find-ProjectFiles {
     $queue = [System.Collections.Generic.Queue[System.IO.DirectoryInfo]]::new()
     $queue.Enqueue([System.IO.DirectoryInfo]::new((Resolve-Path -LiteralPath $Root).Path))
     while ($queue.Count -gt 0) {
+        # Past the command's time limit the walk stops where it is: the files found so far are all there is.
+        if (Test-DeadlinePassed) { Add-PartialStep 'project files' "reading folder $($queue.Peek().FullName)"; break }
         $dir = $queue.Dequeue()
         $files = [System.IO.FileInfo[]]@($dir.EnumerateFiles($Filter, $options))
         if ($files.Count -gt 1) {
@@ -648,10 +715,10 @@ function ConvertTo-SafeName([string]$Text) { return ($Text -replace '[^A-Za-z0-9
 # The files git reports as changed or new (not ignored) under a folder, path -> status ("M", "??"), or $null outside a repository.
 function Get-ProjectChangeSet([string]$Dir) {
     if (-not (Get-GitRoot $Dir)) { return $null }
-    $lines = @(& git -C $Dir status --porcelain=v1 --untracked-files=all -- . 2>$null)
-    if ($LASTEXITCODE -ne 0) { return $null }
+    $git = Invoke-GitBounded $Dir @('status', '--porcelain=v1', '--untracked-files=all', '--', '.') 'changed files'
+    if ($git.Code -ne 0) { return $null }
     $set = [ordered]@{}
-    foreach ($line in $lines) { if ($line.Length -gt 3) { $set[$line.Substring(3).Trim('"')] = $line.Substring(0, 2).Trim() } }
+    foreach ($line in $git.Lines) { if ($line.Length -gt 3) { $set[$line.Substring(3).Trim('"')] = $line.Substring(0, 2).Trim() } }
     return $set
 }
 
@@ -676,10 +743,10 @@ function Get-GitRoot([string]$Dir) {
         $script:GitRootCache.Remove($Dir)
     }
     if (-not (Get-Command git -ErrorAction SilentlyContinue)) { return $null }
-    $root = & git -C $Dir rev-parse --show-toplevel 2>$null
-    if ($LASTEXITCODE -ne 0 -or -not $root) { return $null }
-    $script:GitRootCache[$Dir] = $root
-    return $root
+    $git = Invoke-GitBounded $Dir @('rev-parse', '--show-toplevel') 'git repository'
+    if ($git.Code -ne 0 -or $git.Lines.Count -eq 0) { return $null }
+    $script:GitRootCache[$Dir] = $git.Lines[0]
+    return $git.Lines[0]
 }
 
 # Godot's release tags drop a .0 patch and write prereleases as rc1, not rc.1: Godot.NET.Sdk 4.6.0 is
