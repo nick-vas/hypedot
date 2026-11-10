@@ -77,6 +77,11 @@ other SteamOS devices. Measured on Godot 4.7.2; sources: `${CLAUDE_PLUGIN_ROOT}/
 - **System:** a native Linux build is tested if you ship one, else Proton. Anti-cheat without Proton support makes the
   game Unsupported (`anti-cheat`).
 - **Performance:** 30 frames a second at 800p in the default settings (`bench -Resolution 1280x800`).
+  That is the review's bar, and no longer the number a buyer reads: the store page of a tested game now shows the average frame rate
+  players get on a Deck, with a histogram, from Decks at their default limit (90 Hz on the OLED model, 60 Hz on the LCD). A frame cap
+  below the display's rate that does not divide it paces unevenly (a cap of 60 on the OLED alternates between 90 and 45), and the
+  histogram shows it: cap at a divisor of the display's rate (90, 45 or 30 on the OLED; 60 or 30 on the LCD) or leave pacing to VSync.
+  `deck` warns about `application/run/max_fps` (`deck.framePacing`).
 
 **One command for the Deck's checks.** `deck` runs, at 1280x800, the `textsize` runner, the `layout` runner on the
 `steam_deck` profile (anything off screen), `shot` and `bench` with a budget of 33.3 ms (30 fps) unless `-BudgetMs`

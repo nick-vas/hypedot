@@ -312,7 +312,7 @@ part in the order run: `part` (`textsize`, `layout`, `shot`, `bench`), `ok`, `co
 for a runner with failing cases, else the code the part stopped with, such as `bench-over-budget`, `shot-text` or
 `no-display`) and `message`. The runner parts add `total`, `failed`, `failures[]` (`name`, `message`: the runner's
 JUnit cases, such as `textsize.1280x800` and `layout.steam_deck res://ui/menu.tscn Quit`) and `warnings[]` (`rule`,
-`file`, `message`); `shot` adds `folder`, `bench` `p99Ms` and `fpsAvg`. The parts' own fields sit beside it as their
+`file`, `message`); `shot` adds `folder`, `bench` `p99Ms` and `fpsAvg`. `framePacing` holds `maxFps` (the project's `application/run/max_fps`, 0 for none), `displays` (the Deck's displays and their default rates: OLED 90, LCD 60) and `warnings[]`: one message per display the cap is below and does not divide, where frames alternate between two rates (never a failure). The parts' own fields sit beside it as their
 commands write them: `shots[]` and `palette` from `shot`, `bench` from `bench`, `engineErrors[]` and, with
 `-GpuValidation`, `gpuValidation` from the last part that set them.
 

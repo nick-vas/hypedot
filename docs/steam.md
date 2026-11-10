@@ -154,6 +154,29 @@ client and no Steamworks partner account. Marks: **tested** means run here, **do
 - Steam's `AppResumingFromSuspend_t` is "Sent after the device returns from sleep/suspend mode"; there is no callback
   before suspend (doc). The FAQ: "we recommend that you back up your save files before suspending".
 
+### Frame-rate data on the store page (Valve's announcement, November 2026)
+
+From Valve's Steam news post "Steam Deck Framerate" (the text was pasted by the owner on 2026-11-10; the post's URL and date were not
+read here):
+
+- A game tested for Deck compatibility (Verified, Playable or Unsupported) shows the **average frame rate players get on a Deck** on its
+  store page (Steam Deck Compatibility > Learn more) and in the Library of the Steam Client Beta, with a histogram of the share of samples
+  at each frame rate. Hitches show "as small columns in the lower framerate values".
+- The data is anonymous and opt-in ("a majority of Steam Deck players have opted in"), and filtered to Decks at the **default frame limit:
+  90 FPS on the OLED model, 60 FPS on the LCD model**. In-game settings are not accounted for. A game needs a minimum number of data
+  points before anything is shown. The desktop client's beta asks for the same opt-in, "a stepping stone toward providing framerate data
+  for more devices".
+- Why: the Verified rating "may not match every customer's bar for acceptable gameplay"; a Verified game "may not reach a framerate that
+  some customers prefer". So 30 fps still passes the review, and the number a buyer reads is now the measured average.
+- VSync and the gap between 90 and 45: "on a 90Hz display, if a game has a framerate of 75fps, VSync will force the game to present as many
+  frames as it can at 90fps, and when it can't make that target it will drop to 45fps", a pattern that averages 75 ("90 90 45 90 90 45").
+  "Some games set an internal frame limit to 60, so on Steam Deck OLED set to default (90) it will bounce between 90 and 45 to hit 60 FPS."
+
+What the kit does with it: `deck` reports `deck.framePacing` and warns when the project's frame cap (`application/run/max_fps`) is below a
+Deck display's rate and does not divide it (60 on the OLED's 90 Hz; 45 on the LCD's 60 Hz). The rule (a cap at or above the rate, or a
+divisor of it, paces evenly) is arithmetic from Valve's two examples, not a measurement on a Deck. Not done: a cap set in code
+(`Engine.max_fps`) is not read, and nothing here measures a Deck's speed.
+
 ### Text size at 1280x800 (tested)
 
 With stretch mode `canvas_items`, text in window pixels is the theme font size times the stretch scale. A 1920x1080 base
