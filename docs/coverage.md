@@ -124,11 +124,11 @@ The codes in [`docs/json.md`](json.md#error-codes), and the tests that raise the
 | `Assets.ps1` | 12/12 | `Test-AssetManifest.ps1`, `Test-Addons.ps1`, `Test-Audio.ps1`, `Test-Context.ps1`, `Test-DoctorFixture.ps1`, `Test-ErrorCodes.ps1`, `Test-Flaky.ps1`, `Test-OldState.ps1` and 6 more |
 | `Audio.ps1` | 10/11 | `Test-Localization.ps1`, `Test-SelectJobs.ps1`, `Test-Audio.ps1`, `Test-ErrorCodes.ps1`, `Test-AssetManifest.ps1`, `Test-Addons.ps1`, `Test-Context.ps1`, `Test-DoctorFixture.ps1` and 6 more |
 | `BuildSize.ps1` | 4/4 | `Test-BuildSize.ps1`, `Test-SelectJobs.ps1`, `Test-ErrorCodes.ps1` |
-| `Common.ps1` | 46/63 | `Test-ErrorKeys.ps1`, `Test-Flaky.ps1`, `Test-BenchSweep.ps1`, `Test-GpuValidation.ps1`, `Test-Localization.ps1`, `Test-Flows.ps1`, `Test-Palette.ps1`, `Test-Playthrough.ps1` and 54 more |
+| `Common.ps1` | 46/63 | `Test-ErrorKeys.ps1`, `Test-Flaky.ps1`, `Test-Deck.ps1`, `Test-BenchSweep.ps1`, `Test-GpuValidation.ps1`, `Test-Localization.ps1`, `Test-Flows.ps1`, `Test-Palette.ps1` and 54 more |
 | `Context.ps1` | 8/10 | `Test-Context.ps1`, `Test-Help.ps1`, `Test-DoctorFixture.ps1`, `Test-Addons.ps1`, `Test-AssetManifest.ps1`, `Test-Audio.ps1`, `Test-ErrorCodes.ps1`, `Test-Flaky.ps1` and 5 more |
 | `Credits.ps1` | 6/7 | `Test-Credits.ps1`, `Test-ErrorCodes.ps1` |
 | `Data.ps1` | 0/20 | `Test-Data.ps1` |
-| `Deck.ps1` | 3/3 | `Test-Deck.ps1` |
+| `Deck.ps1` | 3/5 | `Test-Deck.ps1` |
 | `Detect.ps1` | 11/12 | `Test-Addons.ps1`, `Test-Steam.ps1`, `Test-Detect.ps1`, `Test-Platforms.ps1`, `Test-ErrorCodes.ps1`, `Test-AssetManifest.ps1`, `Test-Audio.ps1`, `Test-BuildSize.ps1` and 37 more |
 | `Doctor.ps1` | 13/16 | `Test-Addons.ps1`, `Test-Steam.ps1`, `Test-SelectJobs.ps1`, `Test-DoctorFixture.ps1`, `Test-AssetManifest.ps1`, `Test-Audio.ps1`, `Test-Context.ps1`, `Test-ErrorCodes.ps1` and 5 more |
 | `Help.ps1` | 5/11 | `Test-Help.ps1`, `Test-ErrorCodes.ps1` |

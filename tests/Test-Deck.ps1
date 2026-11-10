@@ -9,6 +9,8 @@ $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot
 $kit = Join-Path $root 'ci/godot/hyperdot.ps1'
 $fixture = Join-Path $PSScriptRoot 'deck-fixture'
+# The kit's own functions first: this script's Invoke-Deck below replaces the kit's of the same name.
+foreach ($lib in 'Common', 'Deck') { . (Join-Path $root "ci/godot/lib/$lib.ps1") }
 if ($IsLinux -and -not $env:DISPLAY) { throw 'deck needs a display: start Xvfb :99 & and set DISPLAY=:99' }
 $temp = Join-Path ([IO.Path]::GetTempPath()) "deck-$([guid]::NewGuid().ToString('N').Substring(0, 8))"
 $failures = [System.Collections.Generic.List[string]]::new()
@@ -22,11 +24,27 @@ function Invoke-Deck([string[]]$Arguments) {
 function Get-Part($Doc, [string]$Name) { @($Doc.deck.parts | Where-Object { $_.part -eq $Name })[0] }
 function Format-Parts($Doc) { if ($Doc -and $Doc.PSObject.Properties['deck']) { @($Doc.deck.parts | ForEach-Object { "$($_.part)=$(if ($_.ok) { 'ok' } else { $_.code })" }) -join ' ' } else { '(no deck)' } }
 
+# The frame cap against the Deck's displays (no Godot): Steam's store page shows the average frame rate and a histogram from Decks at their
+# default limit (90 Hz OLED, 60 Hz LCD), and a cap that does not divide the display's rate alternates between two rates there.
+$w60 = @(Get-DeckPacingWarnings 60)
+Assert-True ($w60.Count -eq 1 -and $w60[0] -match 'OLED' -and $w60[0] -match 'alternate between 90 and 45 fps') "a cap of 60 is uneven on the OLED's 90 Hz only (90 and 45): $($w60 -join ' | ')"
+$w45 = @(Get-DeckPacingWarnings 45)
+Assert-True ($w45.Count -eq 1 -and $w45[0] -match 'LCD' -and $w45[0] -match 'alternate between 60 and 30 fps') "a cap of 45 is uneven on the LCD's 60 Hz only (60 and 30): $($w45 -join ' | ')"
+$w50 = @(Get-DeckPacingWarnings 50)
+Assert-True ($w50.Count -eq 2) "a cap of 50 is uneven on both: $($w50.Count)"
+Assert-True (@(Get-DeckPacingWarnings 0).Count -eq 0 -and @(Get-DeckPacingWarnings 30).Count -eq 0 -and @(Get-DeckPacingWarnings 90).Count -eq 0 -and @(Get-DeckPacingWarnings 144).Count -eq 0) 'no cap, 30 (divides both), 90 and 144 (at or above both) pace evenly'
+$capDir = Join-Path ([IO.Path]::GetTempPath()) "deck-cap-$([guid]::NewGuid().ToString('N').Substring(0, 8))"
+New-Item -ItemType Directory -Force $capDir | Out-Null
+Set-Content -LiteralPath (Join-Path $capDir 'project.godot') -Value "config_version=5`n`n[application]`n`nconfig/name=`"Cap`"`nrun/max_fps=60`n"
+Assert-True ((Get-ProjectMaxFps $capDir) -eq 60 -and (Get-ProjectMaxFps $fixture) -eq 0) 'the cap is read from project.godot (60), and a project without one has none (0)'
+Remove-Item -LiteralPath $capDir -Recurse -Force
+
 try {
     # A budget far above any machine's p99 for this scene: the bench part is about running, not this machine's speed.
     $d = Invoke-Deck @('-Scene', 'res://good.tscn', '-BudgetMs', '1000')
     Assert-True ($d -and $d.ok -and $d.deck.ok -and @($d.deck.parts).Count -eq 4 -and @($d.deck.parts | Where-Object { -not $_.ok }).Count -eq 0) "good.tscn passes every part: $(Format-Parts $d)"
     Assert-True ($d.deck.resolution -eq '1280x800' -and $d.deck.budgetMs -eq 1000 -and $d.bench.resolution -eq '1280x800' -and $d.bench.label -eq 'steam deck') "bench ran at 1280x800 with the given budget: $($d.bench.resolution), $($d.deck.budgetMs)"
+    Assert-True ($d.deck.framePacing.maxFps -eq 0 -and @($d.deck.framePacing.warnings).Count -eq 0 -and $d.deck.framePacing.displays.'Steam Deck OLED' -eq 90) 'deck reports the frame pacing (no cap in the fixture: no warning)'
     $shot = @($d.shots)[0]
     Assert-True ($shot -and (Test-Path -LiteralPath $shot.file) -and $shot.width -eq 1280 -and $shot.height -eq 800) "the screenshot is 1280x800: $(if ($shot) { "$($shot.width)x$($shot.height)" })"
 

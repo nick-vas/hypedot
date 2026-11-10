@@ -145,6 +145,8 @@ The Steam Deck check in one run at 1280x800: text size, layout, a screenshot and
 
 Every part runs even when one fails; the run fails with deck-failed, and deck.parts gives each part's own code. Needs
 a display. bench measures this machine at the Deck's resolution, not a Deck's speed.
+deck.framePacing warns when the project's frame cap does not divide a Deck display's rate (60 on the OLED's 90 Hz alternates between
+90 and 45): Steam's store page now shows each tested game's average frame rate on a Deck, with a histogram.
 ### telemetry
 One view of the run history the kit already keeps: per command the runs, pass rate and mean, median and p95 duration, and for test the slowest runners, the tests that fail most and the flaky ones.
 
