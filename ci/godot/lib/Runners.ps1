@@ -103,6 +103,8 @@ function ConvertFrom-ValidateLog([string]$LogFile, [string]$Marker = 'validate',
     # only the logger's lines are the file's, and stderr counts as outside any file.
     $logged = @($lines | Where-Object { $_.StartsWith("@@$Marker error ") }).Count -gt 0
     foreach ($line in $lines) {
+        # What follows the runner's "done" line is the engine shutting down (a crash there is not a verdict on any file).
+        if ($line -match "^@@$Marker done\b") { break }
         if ($line -match "^@@$Marker begin (?<path>.+)`$") {
             $current = $Matches.path; $buffer = @(); $since = @()
         } elseif ($current -and $line.StartsWith("@@$Marker end $current ")) {
@@ -139,6 +141,20 @@ function ConvertFrom-ValidateLog([string]$LogFile, [string]$Marker = 'validate',
     })
     if ($startup.Count -gt 0) { $cases += @{ Name = 'project startup'; Failure = ($startup -join "`n") } }
     return $cases
+}
+
+# The exit code of a runner that prints `@@<marker> done` when it has judged everything (validate, flows): a crash after that line, with
+# every case ok, is the engine's shutdown (Get-ShutdownCrashVerdict) and becomes a warning in $EngineErrors; anything else keeps its failure.
+function Get-RunnerExitVerdict([int]$Code, [string]$LogFile, [string]$Marker, [object[]]$Cases, $EngineErrors, [string]$What) {
+    $lines = @(Get-Content -LiteralPath $LogFile)
+    $done = @($lines | Where-Object { $_ -match "^@@$Marker done\b" }).Count -gt 0
+    $judgedAll = $done -and @($Cases | Where-Object { $_.Failure }).Count -eq 0
+    $verdict = Get-ShutdownCrashVerdict $Code $lines $judgedAll @() $What
+    if ($verdict.Warning) {
+        Write-CiLog "WARN: $($verdict.Warning)"
+        $EngineErrors.Add([ordered]@{ where = $null; text = $verdict.Warning })
+    }
+    return $verdict
 }
 
 # The errors Godot's own C# bindings logged while a runner ran (ConvertFrom-ValidateLog's $EngineErrors): they fail nothing, so they go to
@@ -244,8 +260,9 @@ function Invoke-TestRunner {
             Stop-LogGroup
             $engineErrors = [System.Collections.Generic.List[object]]::new()
             $cases = @(ConvertFrom-ValidateLog $log 'validate' $engineErrors)
+            $verdict = Get-RunnerExitVerdict $code $log 'validate' $cases $engineErrors 'file'
+            if ($verdict.Failure) { $cases += @{ Name = 'validate'; Failure = $verdict.Failure } }
             Write-EngineErrorFindings $engineErrors 'validate' $ResultsDir
-            if ($code -ne 0) { $cases += @{ Name = 'validate'; Failure = "Godot exited with $code" } }
             Write-JUnitCases (Join-Path $ResultsDir 'validate.junit.xml') 'validate' $cases
         }
         'flows' {
@@ -259,7 +276,14 @@ function Invoke-TestRunner {
             try {
                 New-Item -ItemType Directory -Force $userHome | Out-Null
                 if ($IsWindows) { $env:APPDATA = $userHome } elseif (-not $IsMacOS) { $env:XDG_DATA_HOME = $userHome }
-                $code = Invoke-Logged $godot @('--headless', '--path', $project, '-s', $tool, '--', $Filter) $log
+                $attempt = 0
+                do {
+                    $attempt++
+                    $code = Invoke-Logged $godot @('--headless', '--path', $project, '-s', $tool, '--', $Filter) $log
+                    # A crash before the "done" line may be the engine's, not a flow's: the flows are run once more, and a second crash fails.
+                    $again = (Test-GodotCrashCode $code) -and -not (Select-String -LiteralPath $log -Pattern '^@@flow done\b' -Quiet) -and $attempt -lt 2
+                    if ($again) { Write-CiLog "Godot crashed during the flows (exit $code) before the last one ended; running them once more" }
+                } while ($again)
             } finally {
                 $env:XDG_DATA_HOME = $savedData; $env:APPDATA = $savedAppData
                 Remove-Item -LiteralPath $userHome -Recurse -Force -ErrorAction SilentlyContinue
@@ -268,8 +292,9 @@ function Invoke-TestRunner {
             # A flow fails on its own end line or on an error of its own between its markers; the engine's own errors are warnings.
             $engineErrors = [System.Collections.Generic.List[object]]::new()
             $cases = @(ConvertFrom-ValidateLog $log 'flow' $engineErrors)
+            $verdict = Get-RunnerExitVerdict $code $log 'flow' $cases $engineErrors 'flow'
+            if ($verdict.Failure) { $cases += @{ Name = 'flows'; Failure = $verdict.Failure } }
             Write-EngineErrorFindings $engineErrors 'flows' $ResultsDir
-            if ($code -ne 0) { $cases += @{ Name = 'flows'; Failure = "Godot exited with $code" } }
             Write-JUnitCases (Join-Path $ResultsDir 'flows.junit.xml') 'flows' $cases
         }
         'juice' {
