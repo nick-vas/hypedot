@@ -78,6 +78,12 @@ for any genre. One PowerShell 7 script runs locally on Windows and, packed into 
   the newest head and the one that gates a pending merge. Redundant runs crowd the runners and delay the checks that matter;
   say what you cancelled.
 - Do not rewrite pushed history.
+- Code is written in the main conversation; a subagent is for volume or for independence, not for "it is code"
+  ([docs/research.md](docs/research.md): many agents cost about 15 times the tokens and suit coding poorly). Delegate
+  (1) watching CI and reading its logs, and any other read whose output is large and whose answer is short; (2) the review
+  of a finished change, to an agent that has not seen the reasoning behind it; (3) issues that do not touch the same
+  files, each in its own worktree and branch. The brief says what is already ruled out; the answer comes back as a
+  verdict with its evidence, not as the log.
 - Blocked access (a site, tool, credential or permission out of reach) is never a reason to drop a good idea: ask the
   owner for help, do what does not depend on it, and write down what could not be done and why in `docs/roadmap.md`.
 
