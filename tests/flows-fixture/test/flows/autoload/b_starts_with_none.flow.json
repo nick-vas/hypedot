@@ -1,6 +1,7 @@
 {
   "scene": "res://rotation.tscn",
   "steps": [
-    { "assert": { "node": "/root/StateBox", "prop": "relics", "equals": 0 } }
+    { "assert": { "node": "/root/StateBox", "prop": "relics", "equals": 0 } },
+    { "assert": { "node": "/root/StateBoxCs", "prop": "coins", "equals": 0 } }
   ]
 }

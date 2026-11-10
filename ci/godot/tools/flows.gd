@@ -8,6 +8,8 @@ const SKIP_DIRS := ["res://addons", "res://.godot"]
 const FRAME_LIMIT := 3600
 # Godot's largest texture side; a window bigger than this cannot be drawn anyway.
 const MAX_SIZE := 16384
+# What an autoload names its reset method: GDScript style, and C# style.
+const RESET_METHODS := ["hyperdot_reset_flow_state", "HyperdotResetFlowState"]
 const SIZE_HINT := "resize needs [width, height] in pixels, whole numbers from 1 to %d" % MAX_SIZE
 
 var _failure := ""
@@ -126,15 +128,23 @@ func _reset_state(path: String) -> void:
 		await process_frame
 
 
-# Calls hyperdot_reset_flow_state() on every autoload (a child of the root window at the start) that has it. The method puts the
-# autoload's state back to what a new game starts with and may return a String saying what it found dirty (shown in the note);
-# a method that returns nothing resets silently. Returns the notes.
+# Calls hyperdot_reset_flow_state() (a C# autoload names it HyperdotResetFlowState: Godot calls a C# method by the name it is written
+# with) on every autoload (a child of the root window at the start) that has it. The method puts the autoload's state back to what a
+# new game starts with and may return a String saying what it found dirty (shown in the note); a method that returns nothing resets
+# silently. Returns the notes.
 func _reset_autoload_state() -> Array[String]:
 	var notes: Array[String] = []
 	for autoload in _baseline:
-		if not is_instance_valid(autoload) or not autoload.has_method("hyperdot_reset_flow_state"):
+		if not is_instance_valid(autoload):
 			continue
-		var said: Variant = autoload.call("hyperdot_reset_flow_state")
+		var method := ""
+		for name in RESET_METHODS:
+			if autoload.has_method(name):
+				method = name
+				break
+		if method == "":
+			continue
+		var said: Variant = autoload.call(method)
 		if typeof(said) == TYPE_STRING and said != "":
 			notes.append("%s: %s" % [autoload.name, said])
 	return notes

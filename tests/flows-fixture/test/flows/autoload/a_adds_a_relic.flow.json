@@ -2,6 +2,8 @@
   "scene": "res://rotation.tscn",
   "steps": [
     { "call": "/root/StateBox", "method": "add_relic" },
-    { "assert": { "node": "/root/StateBox", "prop": "relics", "equals": 1 } }
+    { "assert": { "node": "/root/StateBox", "prop": "relics", "equals": 1 } },
+    { "call": "/root/StateBoxCs", "method": "add_coin" },
+    { "assert": { "node": "/root/StateBoxCs", "prop": "coins", "equals": 1 } }
   ]
 }
