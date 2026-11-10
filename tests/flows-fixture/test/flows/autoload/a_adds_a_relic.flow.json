@@ -1,0 +1,7 @@
+{
+  "scene": "res://rotation.tscn",
+  "steps": [
+    { "call": "/root/StateBox", "method": "add_relic" },
+    { "assert": { "node": "/root/StateBox", "prop": "relics", "equals": 1 } }
+  ]
+}

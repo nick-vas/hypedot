@@ -26,6 +26,8 @@ func _initialize() -> void:
 	# The engine sizes the root window during its first frame, which would undo the first flow's start size.
 	await process_frame
 	_baseline = root.get_children()
+	# The first flow starts from the state the game starts in, not from what its autoloads were left with by their own _ready.
+	await _reset_autoloads("")
 	var files: Array[String] = []
 	_collect("res://", files)
 	files.sort()
@@ -101,11 +103,13 @@ func _run_flow(path: String) -> void:
 
 
 # Flows share one process, so what one leaves behind would reach the next: a paused tree (the next flow's input never
-# arrives), a time scale, nodes the game added to the root window (a toast, a popup layer). After each flow the tree is
-# unpaused, the time scale is back to 1 and the nodes added to the root are freed, and a note says what was found. An
-# autoload keeps its own state: a flow that changes one puts it back itself.
+# arrives), a time scale, nodes the game added to the root window (a toast, a popup layer), the state an autoload holds
+# (a run's relics, a saved entry). After each flow the tree is unpaused, the time scale is back to 1, the nodes added to the
+# root are freed and every autoload that has a hyperdot_reset_flow_state() method is asked to reset itself; a note says
+# what was found. An autoload without that method keeps its state: a flow that changes it puts it back itself.
 func _reset_state(path: String) -> void:
 	var found: Array[String] = []
+	found.append_array(_reset_autoload_state())
 	if paused:
 		found.append("left the tree paused (unpaused)")
 		paused = false
@@ -120,6 +124,27 @@ func _reset_state(path: String) -> void:
 	if not found.is_empty():
 		print("@@flow note %s %s" % [path, "; ".join(found)])
 		await process_frame
+
+
+# Calls hyperdot_reset_flow_state() on every autoload (a child of the root window at the start) that has it. The method puts the
+# autoload's state back to what a new game starts with and may return a String saying what it found dirty (shown in the note);
+# a method that returns nothing resets silently. Returns the notes.
+func _reset_autoload_state() -> Array[String]:
+	var notes: Array[String] = []
+	for autoload in _baseline:
+		if not is_instance_valid(autoload) or not autoload.has_method("hyperdot_reset_flow_state"):
+			continue
+		var said: Variant = autoload.call("hyperdot_reset_flow_state")
+		if typeof(said) == TYPE_STRING and said != "":
+			notes.append("%s: %s" % [autoload.name, said])
+	return notes
+
+
+# The reset before the first flow: the same call, with the notes printed against no flow.
+func _reset_autoloads(path: String) -> void:
+	var notes := _reset_autoload_state()
+	if not notes.is_empty():
+		print("@@flow note %s %s" % [path if path != "" else "(before the first flow)", "; ".join(notes)])
 
 
 # Returns "" when the step passed, else the reason it failed.
