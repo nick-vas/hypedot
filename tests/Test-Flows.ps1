@@ -117,6 +117,12 @@ Assert-True ($good.Cases.Count -eq 3) "three good flows ran: $($good.Cases.Count
 $leak = Invoke-Flows 'flows/leak/'
 Assert-True ($leak.Ok -and $leak.Cases.Count -eq 2) "a flow that leaves the tree paused, the time scale at 3 and a node in the root does not reach the next flow: $(@($leak.Cases | Where-Object Message | ForEach-Object { "$($_.Name): $($_.Message)" }) -join ' | ')"
 
+# An autoload that has hyperdot_reset_flow_state() is reset between flows, so the run does not depend on their order (a relic one flow added
+# is gone when the next starts, and the note says what was found).
+$autoload = Invoke-Flows 'flows/autoload/'
+Assert-True ($autoload.Ok -and $autoload.Cases.Count -eq 2) "a relic an autoload holds after one flow is gone for the next: $(@($autoload.Cases | Where-Object Message | ForEach-Object { "$($_.Name): $($_.Message)" }) -join ' | ')"
+Assert-True ($autoload.LogText -match '@@flow note res://test/flows/autoload/a_adds_a_relic\.flow\.json StateBox: 1 relic\(s\) left by the last flow') 'the note names the autoload and what it found'
+
 # The flows run with a throwaway user:// folder (Linux and Windows), not the one where whoever ran them last keeps saved settings; it is gone afterwards.
 $userdir = Invoke-Flows 'flows/userdir/'
 $printed = [regex]::Match($userdir.LogText, '\[userdir\] (?<dir>.+)').Groups['dir'].Value.Trim()
