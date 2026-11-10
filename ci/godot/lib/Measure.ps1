@@ -271,9 +271,19 @@ function Add-BenchCsvRow([string]$Path, $Result) {
     Export-InvariantCsv @([pscustomobject]$row) $Path -Append:$exists
 }
 
+# The baseline picture a new one was compared with: the same file name, or, for a name that carries the size (main.1920x1080.png, shot -NameBySize),
+# the older name without it when that is the picture that was found.
+function Get-ShotBaselineFile([string]$BaselineDir, [string]$File) {
+    $same = Join-Path $BaselineDir (Split-Path $File -Leaf)
+    if (Test-Path -LiteralPath $same) { return $same }
+    $plain = Join-Path $BaselineDir ((Split-Path $File -Leaf) -replace '\.\d+x\d+\.png$', '.png')
+    if (Test-Path -LiteralPath $plain) { return $plain }
+    return $same
+}
+
 function Invoke-Shot {
     param($Info, [string[]]$Scene, [int]$Frames, [string]$Resolution, [string]$OutputDir, [string[]]$GameArgs, [string]$Baseline, [string[]]$Locale, [switch]$Pseudo,
-        [string[]]$ColorVision, [double]$MaxChangedPercent = -1, [double]$MaxOffPalettePercent = -1, [double]$PaletteTolerance = 3, [switch]$GpuValidation, [switch]$RequireResolution)
+        [string[]]$ColorVision, [double]$MaxChangedPercent = -1, [double]$MaxOffPalettePercent = -1, [double]$PaletteTolerance = 3, [switch]$GpuValidation, [switch]$RequireResolution, [switch]$NameBySize)
     if ($RequireResolution -and -not $Resolution) { Stop-GodotCi '-RequireResolution checks the pictures against -Resolution: give the size, e.g. -Resolution 2560x1080' 'invalid-arguments' }
     if ($MaxChangedPercent -ge 0 -and -not $Baseline) { Stop-GodotCi '-MaxChangedPercent compares with -Baseline: give the folder of the earlier screenshots' 'invalid-arguments' }
     if ($MaxChangedPercent -gt 100) { Stop-GodotCi "-MaxChangedPercent is a percentage of pixels (0 to 100), not $MaxChangedPercent" 'invalid-arguments' }
@@ -301,7 +311,7 @@ function Invoke-Shot {
     $engine = @('--path', $Info.ProjectDir) + (Get-WindowArgs $Resolution) + @(Get-GpuValidationArgs -On:$GpuValidation)
     $scenes = @($Scene | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ })
     $user = @("--shot-frames=$Frames", "--shot-dir=$($dir -replace '\\', '/')") + $(if ($scenes) { "--shot-scenes=$($scenes -join ',')" }) +
-        $(if ($baselineDir) { "--shot-baseline=$($baselineDir -replace '\\', '/')" }) + @(Split-GameArgs $GameArgs)
+        $(if ($baselineDir) { "--shot-baseline=$($baselineDir -replace '\\', '/')" }) + $(if ($NameBySize) { '--shot-name-by-size=1' }) + @(Split-GameArgs $GameArgs)
     $locales = @(@($Locale | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ }) + @(if ($Pseudo) { 'pseudo' }))
     if ($locales) { $user = @("--shot-locales=$($locales -join ',')") + @($user) }
     if ($kinds) { $user = @("--shot-colorvision=$($kinds -join ',')") + @($user) }
@@ -328,7 +338,7 @@ function Invoke-Shot {
             if ($shot) {
                 $found = $Matches.file -ne '-'
                 $shot['compare'] = [ordered]@{
-                    baseline = $found ? (Join-Path $baselineDir (Split-Path $shot.file -Leaf)) : $null
+                    baseline = $found ? (Get-ShotBaselineFile $baselineDir $shot.file) : $null
                     changedPercent = $found ? [double]::Parse($Matches.pct, [cultureinfo]::InvariantCulture) : $null
                     sizeChanged = $Matches.size -eq '1'
                     image = $found ? [System.IO.Path]::GetFullPath($Matches.file) : $null

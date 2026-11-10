@@ -22,6 +22,16 @@ $first = Invoke-KitShot @('-Output', $before)
 if (-not $first.ok) { $failures += "baseline screenshots failed: $($first.error.code) $($first.error.message)" }
 $same = Invoke-KitShot @('-Output', $after, '-Baseline', $before, '-MaxChangedPercent', '0.5')
 if (-not $same.ok) { $failures += "an unchanged scene should pass: $($same.error.code) $($same.error.message)" }
+# shot -NameBySize puts the picture's own size in its name, and a baseline taken before that (no size in its names) is still found under the old name.
+$sizedDir = Join-Path $temp 'sized'
+$sized = Invoke-KitShot @('-Output', $sizedDir, '-Baseline', $before, '-NameBySize', '-MaxChangedPercent', '0.5')
+$sizedName = if ($sized.ok) { Split-Path -Leaf @($sized.shots)[0].file } else { '' }
+if (-not $sized.ok -or $sizedName -ne 'swatches.640x360.png' -or -not (Test-Path -LiteralPath (Join-Path $sizedDir $sizedName))) { $failures += "-NameBySize should save swatches.640x360.png: $sizedName $($sized.error.message)" }
+elseif (@($sized.shots)[0].compare.changedPercent -ne 0 -or (Split-Path -Leaf @($sized.shots)[0].compare.baseline) -ne 'swatches.png') { $failures += "a baseline without the size in its names should be found under the old name: $(@($sized.shots)[0].compare | ConvertTo-Json -Depth 5 -Compress)" }
+$plainAgain = Invoke-KitShot @('-Output', (Join-Path $temp 'plain-again'))
+if ((Split-Path -Leaf @($plainAgain.shots)[0].file) -ne 'swatches.png') { $failures += "without -NameBySize the names are as before: $(Split-Path -Leaf @($plainAgain.shots)[0].file)" }
+$notShot = & pwsh -NoProfile -NonInteractive -File $kit doctor -Project $project -NameBySize -Json 2>$null | Out-String | ConvertFrom-Json
+if ($notShot.ok -or $notShot.error.code -ne 'invalid-arguments') { $failures += "-NameBySize on another command should be refused: $($notShot.error.code)" }
 $scene = Join-Path $project 'swatches.tscn'
 (Get-Content -LiteralPath $scene -Raw) -replace 'color = Color\(0\.784314, 0\.27451, 0\.0627451, 1\)', 'color = Color(0.1, 0.2, 0.9, 1)' | Set-Content -LiteralPath $scene -NoNewline
 $changed = Invoke-KitShot @('-Output', (Join-Path $temp 'changed'), '-Baseline', $before, '-MaxChangedPercent', '0.5')

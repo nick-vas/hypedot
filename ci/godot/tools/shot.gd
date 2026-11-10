@@ -89,13 +89,21 @@ func _initialize() -> void:
 			if image == null or image.is_empty():
 				print("@@shot error %s: the viewport returned no image" % scene_path)
 			else:
-				var file := dir.path_join(str(names[scene_path]) + ("." + pass_name if pass_name != "" else "") + ".png")
+				# --shot-name-by-size=1: the picture's own size goes in its name (main.1920x1080.png), so the pictures of one scene at several
+				# sizes sit side by side and a picture that is not the size asked for says so in its name.
+				var stem := str(names[scene_path]) + ("." + pass_name if pass_name != "" else "")
+				var sized := "%s.%dx%d" % [stem, image.get_width(), image.get_height()] if str(_options.get("name-by-size", "")) == "1" else stem
+				var file := dir.path_join(sized + ".png")
 				var err := image.save_png(file)
 				if err == OK:
 					print("@@shot ok %s|%s|%d|%d|%s" % [scene_path, file, image.get_width(), image.get_height(), pass_name])
 					var baseline_dir := str(_options.get("baseline", ""))
 					if baseline_dir != "":
-						_compare(scene_path, image, baseline_dir.path_join(file.get_file()), file.get_basename() + ".compare.png")
+						# A baseline taken before the names carried the size is still found under its old name.
+						var baseline_file := baseline_dir.path_join(file.get_file())
+						if not FileAccess.file_exists(baseline_file):
+							baseline_file = baseline_dir.path_join(stem + ".png")
+						_compare(scene_path, image, baseline_file, file.get_basename() + ".compare.png")
 					_check_text(scene)
 					if not kinds.is_empty():
 						await _save_color_vision(scene_path, image, file, kinds)
