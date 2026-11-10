@@ -20,6 +20,7 @@ this machine at the Deck's resolution, not a Deck's speed.
 | `-Runners` | detected | `validate`, `architecture`, `dotnet`, `gdunit4`, `godottest`, `gut`, `flows`, `smoke`, `juice`, `playthrough`, `l10n`, `data`, `textsize`, `layout`, `placement`; `none` to only build |
 | `-Filter` | | Passed to each runner's filter |
 | `-Retry` | `0` (off) | `test`: run a runner that failed again, up to this many times (at most 5); a test that passes only on a retry passes but is listed in `flaky[]`, `summary.md` and the run history. Tests in the project's `quarantine.json` (owner and end date each) run but do not fail the run ([json.md](json.md)) |
+| `-TimeoutSec` | `120` for `status` and a plain `plan`, none for `plan -Do sync`/`move`/... | `status`, `plan`: a time limit in seconds for what can wait on something outside the script (git, a GitHub call, a long folder walk); `0` turns it off. When it runs out the result keeps what was gathered and `partial` lists each skipped step and what it waited for ([json.md](json.md)); a GitHub call of `plan -Do sync` that outlives it stops the command with `command-timeout`. Refused on other commands (`invalid-arguments`) |
 | `-Coverage` | off | One merged coverage report |
 | `-MinCoverage` | `0` (off) | Fail below this line coverage percentage |
 | `-Preset` | every preset | `export`: which presets |
