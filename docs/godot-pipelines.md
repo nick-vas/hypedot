@@ -103,6 +103,12 @@ exclude_filter="test/*, addons/gut/*, gdunit4_testadapter*/*"
 - Godot 4.7.2 sometimes aborts (exit 134) while importing, mostly seen when the import cache is stale. The kit retries the import up to twice
   on any exit code of 128 or more, never on ordinary failures, and reports `importRetried` in the JSON. It could not be reproduced on demand, so
   this is a mitigation, not a fix.
+- The `validate`, `flows` and `juice` runners print or judge everything before Godot shuts down, and the mono teardown can still abort then (exit 134,
+  `FATAL: Condition "csharp_lang && !csharp_lang->script_bindings.is_empty()"`, then many "Leaked unsafe reference" lines). When every file, flow or rule
+  was judged ok (the `@@validate done` / `@@flow done` line, or every juice rule) and only the exit code is a crash, the run stays green with one warning
+  that names the FATAL line (`runnerResults[].warnings` for `validate` and `flows`); the errors after the `done` line are not read as the project's. A crash
+  before that point (a flow or rule never judged) is run once more by `flows` and `juice`, and fails if it crashes again. Any other nonzero exit, and a crash
+  after a failed case, still fail.
 - On Linux, if Microsoft's download servers are blocked (as in sandboxed cloud sessions), setup falls back
   to the distro's `dotnet-sdk-8.0` package.
 

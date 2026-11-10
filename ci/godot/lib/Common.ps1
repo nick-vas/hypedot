@@ -291,6 +291,24 @@ function Invoke-Logged {
     return $process.ExitCode
 }
 
+# True for an exit code that is a crash: 128 and up is a signal (134 is an abort), a negative one is a Windows NTSTATUS code.
+function Test-GodotCrashCode([int]$Code) { return ($Code -ge 128 -or $Code -lt 0) }
+
+# What a runner's exit code adds to the cases it judged: a failure, or a warning. A Godot that crashed after everything had been judged
+# ($JudgedAll) is a crash in its shutdown (observed: exit 134, `FATAL: Condition "csharp_lang && !csharp_lang->script_bindings.is_empty()"`
+# in the mono teardown, followed by hundreds of "Leaked unsafe reference" lines), nothing the change under test did: a warning with the FATAL
+# line. A crash with something not judged, or with $ErrorsBefore (errors printed before the crash), still fails, and so does any other nonzero
+# exit. $What names what was judged ('rule', 'flow'), for the message.
+function Get-ShutdownCrashVerdict([int]$Code, [string[]]$Lines, [bool]$JudgedAll, [string[]]$ErrorsBefore, [string]$What) {
+    if ($Code -eq 0) { return [pscustomobject]@{ Failure = (@($ErrorsBefore) -join "`n"); Warning = '' } }
+    if ((Test-GodotCrashCode $Code) -and $JudgedAll -and @($ErrorsBefore).Count -eq 0) {
+        $fatal = [array]::FindIndex($Lines, [Predicate[string]]{ param($l) $l -match 'FATAL:' })
+        $line = if ($fatal -ge 0) { $Lines[$fatal].Trim() } else { 'no FATAL line in the log' }
+        return [pscustomobject]@{ Failure = ''; Warning = "Godot crashed at shutdown (exit $Code) after every $What was judged: $line" }
+    }
+    return [pscustomobject]@{ Failure = "Godot exited with $Code"; Warning = '' }
+}
+
 # Runs Godot for a job that is safe to repeat (an import, an export) and runs it again, up to twice, when Godot crashed:
 # an exit code of 128 and up is a signal (observed: 134, an abort, on 4.7.2 when the import cache is stale and, 4 times
 # in 23 headless runs, at shutdown after a finished export: `Parameter "singleton" is null`); on Windows a crash is a

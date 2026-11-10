@@ -63,6 +63,24 @@ try {
     $r = Read-FakeLog $lines $false
     Assert-True ($r.Failed.Count -ge 2) "without the list (the other callers) an error between a flow's markers still fails it"
 
+    # Godot crashing in its shutdown (exit 134, the mono teardown's FATAL and its "Leaked unsafe reference" lines, which come after the "done" line)
+    # after every flow ended ok is a warning; a crash before the "done" line, a failed flow, or any other nonzero exit still fails.
+    $fatal = 'FATAL: Condition "csharp_lang && !csharp_lang->script_bindings.is_empty()" is true.'
+    $leak = 'ERROR: Leaked unsafe reference to object 1234'
+    $teardown = $lines + @($fatal) + @(1..40 | ForEach-Object { $leak })
+    $r = Read-FakeLog $teardown
+    $verdict = Get-RunnerExitVerdict 134 $fakeLog 'flow' $r.Cases $r.Engine 'flow'
+    Assert-True ($r.Cases.Count -eq 56 -and $r.Failed.Count -eq 0 -and -not $verdict.Failure) "exit 134 after the done line: no failed flow, no failure ($($r.Failed.Count) failed, '$($verdict.Failure)')"
+    Assert-True ($verdict.Warning -like '*crashed at shutdown (exit 134) after every flow was judged: FATAL: Condition*' -and @($r.Engine | Where-Object { $_.text -like '*crashed at shutdown*' }).Count -eq 1) 'the crash is one warning with the FATAL line, listed with the engine errors'
+    Assert-True (@($r.Engine | Where-Object { $_.text -like '*Leaked unsafe reference*' }).Count -eq 0) 'the errors after the done line are not read as errors of the project'
+    $r = Read-FakeLog $lines
+    Assert-True ((Get-RunnerExitVerdict 1 $fakeLog 'flow' $r.Cases $r.Engine 'flow').Failure -eq 'Godot exited with 1') 'an ordinary nonzero exit still fails'
+    $r = Read-FakeLog ($lines[0..20] + @($fatal))
+    Assert-True ((Get-RunnerExitVerdict 134 $fakeLog 'flow' $r.Cases $r.Engine 'flow').Failure -eq 'Godot exited with 134') 'a crash before the done line still fails'
+    $r = Read-FakeLog (@('@@flow begin res://z.flow.json', '@@flow end res://z.flow.json step 1: no node', '@@flow done 1', $fatal))
+    Assert-True ((Get-RunnerExitVerdict 134 $fakeLog 'flow' $r.Cases $r.Engine 'flow').Failure -eq 'Godot exited with 134' -and $r.Failed.Count -eq 1) 'a crash after a failed flow still fails'
+    Assert-True ((Test-GodotCrashCode 134) -and (Test-GodotCrashCode -1073741819) -and -not (Test-GodotCrashCode 1) -and -not (Test-GodotCrashCode 0)) 'a crash code is 128 and up, or a negative Windows code'
+
     # An error of its own, between one flow's markers, fails that flow by name, and only that one.
     $own = "SCRIPT ERROR: Invalid call. Nonexistent function 'jump' in base 'Nil'."
     $r = Read-FakeLog @('@@flow begin res://a.flow.json', '@@flow end res://a.flow.json ok', '@@flow begin res://b.flow.json', $own, '@@flow end res://b.flow.json ok', '@@flow begin res://c.flow.json', $handle, '@@flow end res://c.flow.json ok')
