@@ -272,8 +272,16 @@ function Test-BenchmarkTerm([string]$Text, [string]$Term) {
     return [regex]::IsMatch($Text, $pattern, 'IgnoreCase')
 }
 
+# The game's AGENTS.md (ci/godot/templates/AGENTS.md) asks every reply to end with `Certainty: NN%` and a clause saying what it rests on. That line is
+# the agent's own report on its answer, not part of the answer: it is left out before an answer is checked, so it neither counts against a word limit, nor
+# supplies a term the answer must include (its clause names what was read), nor trips a forbidden command. A reply that is only that line is empty.
+function Remove-CertaintyLine([string]$Text) {
+    return [regex]::Replace($Text, '(?ims)^[ \t>*_-]*Certainty\b[ \t*_]*:[ \t*_]*\d{1,3}(?:\.\d+)?[ \t]*%.*\z', '').TrimEnd()
+}
+
 function Test-BenchmarkAnswer([string]$Text, $Expected) {
     $reasons = [System.Collections.Generic.List[string]]::new()
+    $Text = Remove-CertaintyLine $Text
     if (-not $Text.Trim()) { $reasons.Add('empty answer') }
     if ($Expected) {
         foreach ($term in @(if ($Expected.Contains('mustInclude')) { $Expected.mustInclude })) {

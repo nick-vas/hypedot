@@ -36,7 +36,7 @@ $Genre = & $split $Genre; $Stage = & $split $Stage; $Language = & $split $Langua
 
 # The runner's answer grader and the step prompts, taken from it so there is one of each.
 $runnerAst = [System.Management.Automation.Language.Parser]::ParseFile((Join-Path $root 'benchmark/Invoke-TokenBenchmark.ps1'), [ref]$null, [ref]$null)
-foreach ($name in 'Write-BenchLog', 'Test-BenchmarkTerm', 'Test-BenchmarkAnswer') {
+foreach ($name in 'Write-BenchLog', 'Test-BenchmarkTerm', 'Remove-CertaintyLine', 'Test-BenchmarkAnswer') {
     $fn = $runnerAst.Find({ param($n) $n -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -eq $name }, $true)
     . ([scriptblock]::Create($fn.Extent.Text))
 }
