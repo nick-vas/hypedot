@@ -96,7 +96,7 @@ try {
 
     # The grader, on answers built to fool it (the adversarial review's cases).
     $parsed = [System.Management.Automation.Language.Parser]::ParseFile($bench, [ref]$null, [ref]$null)
-    foreach ($name in 'Test-BenchmarkTerm', 'Test-BenchmarkAnswer') {
+    foreach ($name in 'Test-BenchmarkTerm', 'Remove-CertaintyLine', 'Test-BenchmarkAnswer') {
         $fn = $parsed.Find({ param($n) $n -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -eq $name }, $true)
         . ([scriptblock]::Create($fn.Extent.Text))
     }
@@ -116,6 +116,15 @@ try {
     Assert-True ((Test-BenchmarkAnswer '+ ValidateRange' @{ mustInclude = @('Validate') }) -contains "missing 'Validate'") 'a plain term is a whole word, not a prefix'
     Assert-True ((Test-BenchmarkAnswer "| a | b |`n|---|---|`n- **c** d" @{ maxWords = 4 }).Count -eq 0) 'table pipes, list dashes and ** do not count as words (4 words)'
     Assert-True ((Test-BenchmarkAnswer 'one two three four five' @{ maxWords = 4 }) -contains '5 words, limit 4') 'five words are over a limit of four'
+    # The closing `Certainty: NN% <clause>` line of the game's AGENTS.md is the agent's report on its answer, not the answer: it is not counted or searched.
+    $certain = "`nCertainty: 85% from running the tests; the export was not checked."
+    Assert-True ((Test-BenchmarkAnswer ('one two three four' + $certain) @{ maxWords = 4 }).Count -eq 0) 'a Certainty line does not count against a word limit'
+    Assert-True ((Test-BenchmarkAnswer ('one two three four five' + $certain) @{ maxWords = 4 }) -contains '5 words, limit 4') 'the words before it still do (5 words, limit 4)'
+    Assert-True ((Test-BenchmarkAnswer ('It runs on the server.' + "`nCertainty: 90% - I read CI and the workflow.") @{ mustInclude = @('CI') }) -contains "missing 'CI'") 'a term only its clause names is not found'
+    Assert-True ((Test-BenchmarkAnswer ('Done.' + "`n**Certainty: 70%** rests on running Write-Output") @{ forbid = @('Write-Output') }).Count -eq 0) 'nor is a forbidden command in its clause (bold, too)'
+    Assert-True ((Test-BenchmarkAnswer ("`$x = 1`nWrite-Output `$x" + $certain) @{ forbid = @('Write-Output') }) -contains "uses 'Write-Output'") 'a forbidden command in the answer itself still fails'
+    Assert-True ((Test-BenchmarkAnswer 'Certainty: 90% from reading it' $null) -contains 'empty answer') 'a reply that is only the Certainty line is empty'
+    Assert-True ((Test-BenchmarkAnswer 'Certainty is a word I use: one two three' @{ maxWords = 9 }).Count -eq 0 -and (Test-BenchmarkAnswer 'Certainty is a word I use: one two three' @{ maxWords = 8 }) -contains '9 words, limit 8') 'a sentence that merely starts with the word is kept (9 words)'
     $echoSpec = Join-Path $work 'echo-spec.json'
     $echo = Get-Content -LiteralPath $spec -Raw | ConvertFrom-Json -AsHashtable
     $echo.tasks[0].expected.mustInclude = @('please')

@@ -51,6 +51,10 @@ CLI's raw JSON. `-Json` prints `summary.json` on stdout.
     use written outside it.
   - `maxWords`: stated in the prompt as "Answer in at most N words.", so the limit is never a secret. A word holds a
     letter or a digit; table pipes, list dashes and `**` do not count.
+  - The closing `Certainty: NN%` line that the game's `AGENTS.md` template asks of every reply (and the clause after it, saying what it rests
+    on) is the agent's report on its answer, not the answer: it is left out before any of these checks, so it does not count against
+    `maxWords`, cannot supply a `mustInclude` term or trip a `forbid`, and a reply that is only that line is empty. A sentence that merely
+    starts with the word "Certainty" is kept.
 
   A task passes when the session ends without an error and the answer meets `expected`. The runner refuses a spec
   whose required term already appears in that task's own prompt or title, since echoing the question would pass it.
