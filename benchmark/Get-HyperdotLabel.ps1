@@ -71,7 +71,7 @@ function Format-Inv([string]$Format, [object[]]$Values) { return [string]::Forma
 
 # The spec's grader, taken from the runner so there is one.
 $runnerAst = [System.Management.Automation.Language.Parser]::ParseFile((Join-Path $PSScriptRoot 'Invoke-TokenBenchmark.ps1'), [ref]$null, [ref]$null)
-foreach ($name in 'Test-BenchmarkTerm', 'Test-BenchmarkAnswer') {
+foreach ($name in 'Test-BenchmarkTerm', 'Remove-CertaintyLine', 'Test-BenchmarkAnswer') {
     $fn = $runnerAst.Find({ param($n) $n -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -eq $name }, $true)
     . ([scriptblock]::Create($fn.Extent.Text))
 }
