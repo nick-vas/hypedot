@@ -30,7 +30,9 @@ function Invoke-Flows([string]$Filter) {
     $log = Join-Path $results 'flows/flows.log'
     $logText = if (Test-Path -LiteralPath $log) { Get-Content -LiteralPath $log -Raw } else { '' }
     Remove-Item -Recurse -Force $results -ErrorAction SilentlyContinue
-    return [pscustomobject]@{ Ok = [bool]$json.ok; Cases = $cases; LogText = $logText }
+    $flows = @($json.runnerResults | Where-Object { $_.runner -eq 'flows' })
+    $warnings = @(if ($flows.Count -gt 0 -and $flows[0].PSObject.Properties['warnings']) { $flows[0].warnings })
+    return [pscustomobject]@{ Ok = [bool]$json.ok; Cases = $cases; LogText = $logText; Warnings = $warnings }
 }
 function Get-Message($Result, [string]$File) {
     $found = @($Result.Cases | Where-Object { $_.Name -like "*/$File" })
@@ -79,6 +81,22 @@ try {
     Assert-True ((Get-RunnerExitVerdict 134 $fakeLog 'flow' $r.Cases $r.Engine 'flow').Failure -eq 'Godot exited with 134') 'a crash before the done line still fails'
     $r = Read-FakeLog (@('@@flow begin res://z.flow.json', '@@flow end res://z.flow.json step 1: no node', '@@flow done 1', $fatal))
     Assert-True ((Get-RunnerExitVerdict 134 $fakeLog 'flow' $r.Cases $r.Engine 'flow').Failure -eq 'Godot exited with 134' -and $r.Failed.Count -eq 1) 'a crash after a failed flow still fails'
+    Assert-True (@($r.Engine | Where-Object { $_.Contains('rule') }).Count -eq 0) "a failed flow's log with no leak lines adds no exit-leak warning"
+    # A leak Godot reports at exit (4.7.2's words, after the done line) is a warning naming the last flow, whatever the exit code; when the
+    # exit code fails the runner, the failure carries the leak too, so "1 failed" never comes without a reason. Mono's teardown lines are not one.
+    $leakLines = @('WARNING: 1 RID of type "CanvasItem" was leaked.', '   at: _free_rids (servers/rendering/renderer_canvas_cull.cpp:2733)',
+        "`e[1;33mWARNING:`e[0;93m 5 ObjectDB instances were leaked at exit (run with ``--verbose`` for details).`e[0m")
+    $r = Read-FakeLog ($lines + $leakLines)
+    $verdict = Get-RunnerExitVerdict 0 $fakeLog 'flow' $r.Cases $r.Engine 'flow'
+    $leakWarnings = @($r.Engine | Where-Object { $_.Contains('rule') -and $_['rule'] -eq 'exit-leak' })
+    Assert-True (-not $verdict.Failure -and $leakWarnings.Count -eq 1) "exit 0 with a leak at exit: no failure, one exit-leak warning ($($leakWarnings.Count), '$($verdict.Failure)')"
+    Assert-True ($leakWarnings.Count -eq 1 -and $leakWarnings[0].where -eq 'res://test/flows/f56.flow.json' -and $leakWarnings[0].text -match 'RID of type "CanvasItem" was leaked\.; WARNING: 5 ObjectDB instances were leaked at exit') "the warning names the last flow and both leak lines, without colour codes: $(@($leakWarnings | ForEach-Object { "$($_.where) | $($_.text)" }))"
+    $r = Read-FakeLog ($lines + $leakLines)
+    $verdict = Get-RunnerExitVerdict 1 $fakeLog 'flow' $r.Cases $r.Engine 'flow'
+    Assert-True ($verdict.Failure -like 'Godot exited with 1; at exit: *ObjectDB instances were leaked at exit*') "a failing exit code with a leak names the leak in its failure: $($verdict.Failure)"
+    $r = Read-FakeLog $teardown
+    $null = Get-RunnerExitVerdict 134 $fakeLog 'flow' $r.Cases $r.Engine 'flow'
+    Assert-True (@($r.Engine | Where-Object { $_.Contains('rule') }).Count -eq 0) "mono's teardown ('Leaked unsafe reference') is not a leak at exit"
     Assert-True ((Test-GodotCrashCode 134) -and (Test-GodotCrashCode -1073741819) -and -not (Test-GodotCrashCode 1) -and -not (Test-GodotCrashCode 0)) 'a crash code is 128 and up, or a negative Windows code'
 
     # An error of its own, between one flow's markers, fails that flow by name, and only that one.
@@ -116,6 +134,12 @@ Assert-True ($good.Cases.Count -eq 3) "three good flows ran: $($good.Cases.Count
 # Flows share one process: what one leaves (a paused tree, a time scale, a node in the root window) is cleaned before the next.
 $leak = Invoke-Flows 'flows/leak/'
 Assert-True ($leak.Ok -and $leak.Cases.Count -eq 2) "a flow that leaves the tree paused, the time scale at 3 and a node in the root does not reach the next flow: $(@($leak.Cases | Where-Object Message | ForEach-Object { "$($_.Name): $($_.Message)" }) -join ' | ')"
+
+# A screen that makes a control it never adds or frees (orphan.tscn): Godot reports the leak only at exit, after every flow ended ok. The
+# run passes, with an exit-leak warning that names the flow, instead of the leak staying in the raw log.
+$exitLeak = Invoke-Flows 'flows/exitleak/'
+$exitWarnings = @($exitLeak.Warnings | Where-Object { $_.rule -eq 'exit-leak' })
+Assert-True ($exitLeak.Ok -and $exitWarnings.Count -eq 1 -and $exitWarnings[0].file -eq 'res://test/flows/exitleak/orphan_label.flow.json' -and $exitWarnings[0].message -match 'leaked') "a leak at exit is a warning naming the flow: $(@($exitLeak.Warnings | ForEach-Object { "$($_.rule) $($_.file) $($_.message)" }) -join ' | ')"
 
 # A machine that falls behind runs several physics ticks per drawn frame (laggy.tscn: 10 frames and 240 ticks a second). An
 # action sent after a wait is still handled before the next step reads the game: before the runner held one physics tick per

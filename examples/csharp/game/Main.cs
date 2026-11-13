@@ -33,8 +33,10 @@ public partial class Main : Node2D
     public int Score => _run.Score;
     public int Floor => _run.Floor;
     public float PaddleX => _paddleX;
-    public InputDevices Devices { get; } = new();
-    public Haptics Haptics { get; } = new();
+    // Nodes are made in _Ready, where they join the tree at once: made here (a field initialiser runs on instantiate()), a copy
+    // that is instantiated and freed without entering the tree (validate does it) would leave them leaked at exit.
+    public InputDevices Devices { get; private set; } = null!;
+    public Haptics Haptics { get; private set; } = null!;
     public Diagnostics Diagnostics { get; private set; } = null!;
     /// <summary>Raises the playtest events (game-playtest) from the paddle and the run; recorded only with analytics consent.</summary>
     public PlaytestTracker Playtest { get; private set; } = null!;
@@ -51,8 +53,10 @@ public partial class Main : Node2D
     public override void _Ready()
     {
         InputBindings.Load();
+        Devices = new InputDevices();
         AddChild(Devices);
         if (DisplayServer.IsTouchscreenAvailable()) AddChild(new TouchControls { Layout = TouchControls.ForThisScreen(Arena) });
+        Haptics = new Haptics();
         AddChild(Haptics);
         // Errors are captured for the running game, not for copies of this scene that tests create.
         Diagnostics = new Diagnostics { CaptureEngineErrors = GetTree().CurrentScene == this };

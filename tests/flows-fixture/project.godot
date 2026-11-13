@@ -2,7 +2,8 @@
 ; rotation looks like from inside: each size_changed, whether "jump" was held at that moment, the press and release
 ; events, and the layout a loading screen picks when it finishes. test/flows/good holds rotation flows that pass;
 ; test/flows/broken holds flows that fail on purpose; test/flows/lag plays input on laggy.tscn, a scene that runs several
-; physics ticks per drawn frame. tests/Test-Flows.ps1 runs the flows runner on both.
+; physics ticks per drawn frame; test/flows/exitleak plays orphan.tscn, which leaks a control Godot reports at exit.
+; tests/Test-Flows.ps1 runs the flows runner on them.
 config_version=5
 
 [application]

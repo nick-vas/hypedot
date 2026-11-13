@@ -143,8 +143,18 @@ function ConvertFrom-ValidateLog([string]$LogFile, [string]$Marker = 'validate',
     return $cases
 }
 
+# What Godot prints at exit about objects nobody freed (4.7.2: `5 ObjectDB instances were leaked at exit`, `1 RID of type "CanvasItem"
+# was leaked`, `N resources still in use at exit`): the lines of $Lines that say so, without colour codes. Mono's teardown noise
+# ("Leaked unsafe reference") is not one of them.
+function Get-ExitLeakLines([string[]]$Lines) {
+    return @($Lines | ForEach-Object { ($_ -replace "`e\[[0-9;]*m", '').Trim() } |
+        Where-Object { $_ -match '(?i)\bleaked at exit\b|\bRIDs? (?:allocations )?of type .+ (?:was|were) leaked\b|resources? still in use at exit' })
+}
+
 # The exit code of a runner that prints `@@<marker> done` when it has judged everything (validate, flows): a crash after that line, with
 # every case ok, is the engine's shutdown (Get-ShutdownCrashVerdict) and becomes a warning in $EngineErrors; anything else keeps its failure.
+# A leak Godot reports at exit (Get-ExitLeakLines) belongs to no single case: it is always a warning, named with the last case that ran,
+# and when the exit code fails the runner it is also part of that failure, so a failed runner never comes without a reason.
 function Get-RunnerExitVerdict([int]$Code, [string]$LogFile, [string]$Marker, [object[]]$Cases, $EngineErrors, [string]$What) {
     $lines = @(Get-Content -LiteralPath $LogFile)
     $done = @($lines | Where-Object { $_ -match "^@@$Marker done\b" }).Count -gt 0
@@ -154,6 +164,15 @@ function Get-RunnerExitVerdict([int]$Code, [string]$LogFile, [string]$Marker, [o
         Write-CiLog "WARN: $($verdict.Warning)"
         $EngineErrors.Add([ordered]@{ where = $null; text = $verdict.Warning })
     }
+    $leaks = @(Get-ExitLeakLines $lines)
+    if ($leaks.Count -gt 0) {
+        $begun = @($lines | ForEach-Object { if ($_ -match "^@@$Marker begin (?<path>.+)`$") { $Matches.path } })
+        $last = if ($begun.Count -gt 0) { $begun[-1] } else { $null }
+        $text = "Godot reported a leak at exit$(if ($last) { " (the last $What to run: $last; any $What may have caused it)" }): $($leaks -join '; ')"
+        Write-CiLog "WARN: $text"
+        $EngineErrors.Add([ordered]@{ where = $last; text = $text; rule = 'exit-leak' })
+        if ($verdict.Failure) { $verdict.Failure = "$($verdict.Failure); at exit: $($leaks -join '; ')" }
+    }
     return $verdict
 }
 
@@ -161,10 +180,13 @@ function Get-RunnerExitVerdict([int]$Code, [string]$LogFile, [string]$Marker, [o
 # findings.json as warnings (rule engine-internal-error; runnerResults[].warnings, and the pull request comment) with the file that was running.
 function Write-EngineErrorFindings($EngineErrors, [string]$Runner, [string]$ResultsDir) {
     if ($EngineErrors.Count -eq 0) { return }
-    $findings = @($EngineErrors | ForEach-Object { [ordered]@{ rule = 'engine-internal-error'; severity = 'warning'; file = $_.where; line = $null; message = $_.text } })
+    # An entry may name its rule (exit-leak); the rest are engine-internal-error.
+    $findings = @($EngineErrors | ForEach-Object { [ordered]@{ rule = ($_.Contains('rule') ? $_['rule'] : 'engine-internal-error'); severity = 'warning'; file = $_.where; line = $null; message = $_.text } })
     ConvertTo-Json -InputObject $findings -Depth 4 | Set-Content -LiteralPath (Join-Path $ResultsDir 'findings.json') -Encoding utf8
-    $where = @($EngineErrors | Group-Object { $_.where ? $_.where : 'outside every file' } | ForEach-Object { "$($_.Name) x$($_.Count)" })
-    Write-CiLog "${Runner}: Godot's own C# bindings logged $($EngineErrors.Count) error(s) ($($where -join ', ')): warnings, not failures (godotengine/godot#124587); $(Format-KitCommand 'test') again, or load every C# resource through a cache"
+    $internal = @($EngineErrors | Where-Object { -not $_.Contains('rule') })
+    if ($internal.Count -eq 0) { return }
+    $where = @($internal | Group-Object { $_.where ? $_.where : 'outside every file' } | ForEach-Object { "$($_.Name) x$($_.Count)" })
+    Write-CiLog "${Runner}: Godot's own C# bindings logged $($internal.Count) error(s) ($($where -join ', ')): warnings, not failures (godotengine/godot#124587); $(Format-KitCommand 'test') again, or load every C# resource through a cache"
 }
 
 # GUT skips a test script that does not load (a parse error) with a warning, "Ignoring script ... because it does not
