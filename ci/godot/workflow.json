@@ -25,6 +25,7 @@
     { "id": "test.changed", "command": "test", "trigger": "files-newer", "files": ["*.gd", "*.cs", "*.tscn", "*.tres", "project.godot"],
       "reason": "Code or scenes changed since the last test run" },
     { "id": "doctor.never", "command": "doctor", "trigger": "never-run", "reason": "doctor has not run on this project" },
+    { "id": "doctor.failed", "command": "doctor", "trigger": "failed-last", "reason": "The latest doctor run found problems" },
     { "id": "doctor.changed", "command": "doctor", "trigger": "files-newer", "files": ["project.godot", "*.csproj", "export_presets.cfg", "plugin.cfg", "*.gdextension"],
       "reason": "A project file, preset or add-on changed since the last doctor run" },
     { "id": "doctor.release", "command": "doctor", "trigger": "older-than", "days": 7, "fromStage": 5, "reason": "Launch checks (store art, privacy, Steam files) want a run within the week" },

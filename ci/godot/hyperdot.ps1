@@ -732,6 +732,8 @@ if ($Command -in 'setup', 'build', 'test', 'export', 'bench', 'shot', 'audio', '
     Start-RunLog (Join-Path $commandResultsDir 'hyperdot.log')
     if ($Command -ne 'setup') { Start-RunHistory $Command $info.ProjectDir }
 }
+# doctor writes no run log (its checks are its output) but is recorded, so status's doctor rules see when it last ran.
+if ($Command -eq 'doctor') { Start-RunHistory $Command $info.ProjectDir }
 # Screenshots, recordings and measurements run from the game's folder land inside it.
 if ($Command -in 'bench', 'shot', 'audio', 'soak', 'deck') { Add-OutputGdignore $commandResultsDir $info.ProjectDir }
 $script:ExportVersion = if ($Command -eq 'export' -and $GameVersion) { Resolve-ExportVersion } else { $null }

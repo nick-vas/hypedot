@@ -764,6 +764,7 @@ function Invoke-Doctor($Info, [switch]$ReportIssue) {
     if ($fails -gt 0) {
         Set-JsonField ok $false
         Set-JsonField error ([ordered]@{ code = 'doctor-problems'; message = "$fails problem(s) found" })
+        Add-RunHistory $false 'doctor-problems'
         Write-JsonResult
         exit 1
     }
