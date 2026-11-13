@@ -233,7 +233,7 @@ arrays when there is nothing to list; `retry` is the `-Retry` value):
   compared run and is flaky or quarantined now is not `fixed`. The policy is Rare's for Sea of Thieves
   ([gdc/sea-of-thieves-automated-testing.md](gdc/sea-of-thieves-automated-testing.md)).
 
-Each `build`, `test`, `export`, `bench`, `shot`, `audio`, `soak`, `credits` and `deck` run also appends one line to `.godot/hyperdot-history.jsonl` in the
+Each `build`, `test`, `export`, `bench`, `shot`, `audio`, `soak`, `credits`, `deck` and `doctor` run also appends one line to `.godot/hyperdot-history.jsonl` in the
 project: `time` (UTC), `command`, `ok`, `code`, `seconds`, and `failedRunners` for `test`. A `test` run that reached its
 runners also records `scope` (`runners`, sorted, and `filter`, `""` without `-Filter`), `failures` (up to 200 ids
 `<runner>|<test name>`, in ordinal order) and `failuresTruncated`; the next run of the same scope compares itself with them.

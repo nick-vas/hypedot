@@ -89,7 +89,7 @@ function Write-RunLog([string]$Text, [switch]$NoNewline) {
     if ($NoNewline) { $script:RunLogWriter.Write($Text) } else { $script:RunLogWriter.WriteLine($Text) }
 }
 
-# One line per test, build, export, bench or shot run, kept in the project's .godot folder (never committed, survives a
+# One line per run of a command that changes or checks the game (test, build, export, bench, shot, audio, soak, credits, deck, doctor), kept in the project's .godot folder (never committed, survives a
 # wiped results folder). The Stop hook reads it to tell whether code changed since the last passing test run,
 # /retro reads recurring error codes from it, and each test run compares its failures with the previous one's.
 $script:HistoryCommand = $null

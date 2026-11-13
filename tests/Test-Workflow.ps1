@@ -90,13 +90,42 @@ try {
     $doc = $out | ConvertFrom-Json
     Assert-True (@($doc.suggestedCommands | ForEach-Object { $_.command }) -join ',' -eq 'test,doctor') 'status -Json lists test and doctor for a project that never ran them'
     Assert-True ($doc.suggestedCommands[0].rule -eq 'test.never' -and $doc.suggestedCommands[0].reason) 'each suggestion carries its rule and reason'
+    # A real doctor run, not a written entry: doctor once wrote no history, so status kept suggesting it however often it ran.
+    # This bare project has problems (no solution, no presets), so doctor exits 1; a failed run is still a run.
+    $historyFile = Join-Path $dir '.godot/hyperdot-history.jsonl'
+    $null = & pwsh -NoProfile -NonInteractive -File $ci doctor -Json -Project $dir 2>$null | Out-String
+    $doctorExit = $LASTEXITCODE
+    $doctorLines = @(if (Test-Path -LiteralPath $historyFile) { Get-Content -LiteralPath $historyFile | ConvertFrom-Json | Where-Object { $_.command -eq 'doctor' } })
+    Assert-True ($doctorLines.Count -eq 1) 'doctor -Json records its run in the history'
+    Assert-True ($doctorLines.Count -eq 1 -and $doctorLines[0].ok -eq ($doctorExit -eq 0)) 'the recorded doctor run has the ok of its exit code'
     $history = [ordered]@{ time = (Get-Date).ToUniversalTime().AddMinutes(1).ToString('o'); command = 'test'; ok = $true; code = ''; seconds = 1 } | ConvertTo-Json -Compress -Depth 4
-    $history2 = [ordered]@{ time = (Get-Date).ToUniversalTime().AddMinutes(1).ToString('o'); command = 'doctor'; ok = $true; code = ''; seconds = 1 } | ConvertTo-Json -Compress -Depth 4
-    Set-Content -LiteralPath (Join-Path $dir '.godot/hyperdot-history.jsonl') @($history, $history2)
+    Add-Content -LiteralPath $historyFile $history
     $doc = (& pwsh -NoProfile -NonInteractive -File $ci status -Json -Project $dir 2>$null | Out-String) | ConvertFrom-Json
-    Assert-True (@($doc.suggestedCommands).Count -eq 0) 'status -Json suggests nothing once both ran after every file'
-    $text = & pwsh -NoProfile -NonInteractive -File $ci status -Project $dir 2>&1 | Out-String
-    Assert-True ($text -notmatch 'Run next') 'plain status prints no Run next line then'
+    $rules = @($doc.suggestedCommands | ForEach-Object { $_.rule })
+    Assert-True ('doctor.never' -notin $rules) 'after a doctor run status no longer says doctor never ran'
+    if ($doctorExit -eq 0) {
+        Assert-True ($rules.Count -eq 0) 'status -Json suggests nothing once both ran after every file'
+        $text = & pwsh -NoProfile -NonInteractive -File $ci status -Project $dir 2>&1 | Out-String
+        Assert-True ($text -notmatch 'Run next') 'plain status prints no Run next line then'
+    }
+    # A doctor run that finds a problem (GODOT_BIN names no file) is recorded as failed and suggested again until a run passes.
+    Set-Content -LiteralPath $historyFile $history
+    $savedBin = $env:GODOT_BIN
+    try {
+        $env:GODOT_BIN = Join-Path $dir 'no-such-godot'
+        $null = & pwsh -NoProfile -NonInteractive -File $ci doctor -Json -Project $dir 2>$null | Out-String
+        Assert-True ($LASTEXITCODE -eq 1) 'doctor fails when GODOT_BIN names no file'
+    } finally { $env:GODOT_BIN = $savedBin }
+    $failed = @(Get-Content -LiteralPath $historyFile | ConvertFrom-Json | Where-Object { $_.command -eq 'doctor' })
+    Assert-True ($failed.Count -eq 1 -and -not $failed[0].ok -and $failed[0].code -eq 'doctor-problems') 'a doctor run with problems is recorded as failed, with its code'
+    $doc = (& pwsh -NoProfile -NonInteractive -File $ci status -Json -Project $dir 2>$null | Out-String) | ConvertFrom-Json
+    Assert-True (@($doc.suggestedCommands | ForEach-Object { $_.rule }) -join ',' -eq 'doctor.failed') 'a failed doctor run suggests doctor.failed'
+    # A preset edited after that run: doctor.changed fires (it needs a recorded run, which doctor.never used to hide).
+    $passed = [ordered]@{ time = (Get-Date).ToUniversalTime().AddMinutes(-10).ToString('o'); command = 'doctor'; ok = $true; code = ''; seconds = 1 } | ConvertTo-Json -Compress -Depth 4
+    Set-Content -LiteralPath $historyFile @($passed, $history)
+    Set-Content -LiteralPath (Join-Path $dir 'export_presets.cfg') "[preset.0]`n`nname=`"Linux`"`nplatform=`"Linux`"`n"
+    $doc = (& pwsh -NoProfile -NonInteractive -File $ci status -Json -Project $dir 2>$null | Out-String) | ConvertFrom-Json
+    Assert-True (@($doc.suggestedCommands | ForEach-Object { $_.rule }) -join ',' -eq 'doctor.changed') 'a preset edited after the last doctor run suggests doctor.changed'
 } finally { Remove-Item -LiteralPath $dir -Recurse -Force -ErrorAction SilentlyContinue }
 
 if ($failures.Count) { Write-Host "`n$($failures.Count) failed"; exit 1 }
