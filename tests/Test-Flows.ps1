@@ -141,6 +141,12 @@ $exitLeak = Invoke-Flows 'flows/exitleak/'
 $exitWarnings = @($exitLeak.Warnings | Where-Object { $_.rule -eq 'exit-leak' })
 Assert-True ($exitLeak.Ok -and $exitWarnings.Count -eq 1 -and $exitWarnings[0].file -eq 'res://test/flows/exitleak/orphan_label.flow.json' -and $exitWarnings[0].message -match 'leaked') "a leak at exit is a warning naming the flow: $(@($exitLeak.Warnings | ForEach-Object { "$($_.rule) $($_.file) $($_.message)" }) -join ' | ')"
 
+# A machine that falls behind runs several physics ticks per drawn frame (laggy.tscn: 10 frames and 240 ticks a second). An
+# action sent after a wait is still handled before the next step reads the game: before the runner held one physics tick per
+# drawn frame this flow failed on every run (presses 0 at step 3, or 1 at step 7).
+$lag = Invoke-Flows 'flows/lag/'
+Assert-True ($lag.Ok -and $lag.Cases.Count -eq 1) "an action is handled before the next step on a machine that falls behind: $(@($lag.Cases | Where-Object Message | ForEach-Object { "$($_.Name): $($_.Message)" }) -join ' | ')"
+
 # An autoload that has hyperdot_reset_flow_state() is reset between flows, so the run does not depend on their order (a relic one flow added
 # is gone when the next starts, and the note says what was found).
 $autoload = Invoke-Flows 'flows/autoload/'

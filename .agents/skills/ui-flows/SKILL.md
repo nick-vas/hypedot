@@ -34,7 +34,7 @@ Put files anywhere outside `addons/`, named `*.flow.json` (convention: `test/flo
 
 | Step | Does |
 |---|---|
-| `wait: N` | N physics frames |
+| `wait: N` | N physics frames; the runner draws one frame per physics frame, so an action sent before a wait is handled before the step after it |
 | `press: "path"` | emits `pressed` on a `BaseButton` |
 | `action: "name"`, `hold`, `strength` | presses an Input Map action for `hold` frames (default 1), then releases |
 | `hold: "name"`, `strength` | presses an action and keeps it held while later steps run |

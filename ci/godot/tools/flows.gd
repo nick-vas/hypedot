@@ -18,6 +18,8 @@ var _scene: Node
 var _held: Array[String] = []
 # The children of the root window when the first flow starts (the autoloads): whatever a flow adds there later is its own.
 var _baseline: Array[Node] = []
+# Engine.max_physics_steps_per_frame before the run, put back at the end.
+var _physics_steps := 8
 
 
 func _initialize() -> void:
@@ -28,6 +30,7 @@ func _initialize() -> void:
 	# The engine sizes the root window during its first frame, which would undo the first flow's start size.
 	await process_frame
 	_baseline = root.get_children()
+	_physics_steps = Engine.max_physics_steps_per_frame
 	# The first flow starts from the state the game starts in, not from what its autoloads were left with by their own _ready.
 	await _reset_autoloads("")
 	var files: Array[String] = []
@@ -41,6 +44,7 @@ func _initialize() -> void:
 		print("@@flow begin %s" % path)
 		await _run_flow(path)
 		print("@@flow end %s %s" % [path, _failure if _failure else "ok"])
+	Engine.max_physics_steps_per_frame = _physics_steps
 	print("@@flow done %d" % ran)
 	quit(0)
 
@@ -80,6 +84,11 @@ func _run_flow(path: String) -> void:
 	root.add_child(_scene)
 	current_scene = _scene
 	await process_frame
+	# Input sent by a step is handled once per drawn frame, before that frame's physics ticks. A machine that falls behind
+	# runs several physics ticks in one drawn frame, so "wait 4" could end inside the frame the input was sent in and the
+	# next assert read the game from before it. One physics tick per drawn frame makes every awaited physics frame also
+	# let a drawn frame pass. Set after the scene's _ready, so a game that sets its own value is overridden for the run.
+	Engine.max_physics_steps_per_frame = 1
 
 	var steps: Array = flow.get("steps", [])
 	for i in steps.size():
