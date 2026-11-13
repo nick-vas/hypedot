@@ -117,6 +117,12 @@ Assert-True ($good.Cases.Count -eq 3) "three good flows ran: $($good.Cases.Count
 $leak = Invoke-Flows 'flows/leak/'
 Assert-True ($leak.Ok -and $leak.Cases.Count -eq 2) "a flow that leaves the tree paused, the time scale at 3 and a node in the root does not reach the next flow: $(@($leak.Cases | Where-Object Message | ForEach-Object { "$($_.Name): $($_.Message)" }) -join ' | ')"
 
+# A machine that falls behind runs several physics ticks per drawn frame (laggy.tscn: 10 frames and 240 ticks a second). An
+# action sent after a wait is still handled before the next step reads the game: before the runner held one physics tick per
+# drawn frame this flow failed on every run (presses 0 at step 3, or 1 at step 7).
+$lag = Invoke-Flows 'flows/lag/'
+Assert-True ($lag.Ok -and $lag.Cases.Count -eq 1) "an action is handled before the next step on a machine that falls behind: $(@($lag.Cases | Where-Object Message | ForEach-Object { "$($_.Name): $($_.Message)" }) -join ' | ')"
+
 # An autoload that has hyperdot_reset_flow_state() is reset between flows, so the run does not depend on their order (a relic one flow added
 # is gone when the next starts, and the note says what was found).
 $autoload = Invoke-Flows 'flows/autoload/'

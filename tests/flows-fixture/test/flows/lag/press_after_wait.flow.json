@@ -1,0 +1,12 @@
+{
+  "scene": "res://laggy.tscn",
+  "steps": [
+    { "wait": 1 },
+    { "action": "jump" },
+    { "assert": { "node": "/root/Laggy", "prop": "presses", "equals": 1 } },
+    { "wait": 2 },
+    { "action": "jump" },
+    { "wait": 1 },
+    { "assert": { "node": "/root/Laggy", "prop": "presses", "equals": 2 } }
+  ]
+}
