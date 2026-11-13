@@ -512,6 +512,25 @@ function Get-MissingExportTemplate([string]$LogFile) {
     return $hit.Success ? $hit.Groups['path'].Value : $null
 }
 
+# Which Android keystore an export could not sign with, 'release' or 'debug', or $null when the log does not say so.
+# Godot 4.7.2: "Code Signing: Could not find release keystore, unable to export." (and the same for debug).
+function Get-MissingExportKeystore([string]$LogFile) {
+    $text = (Get-Content -LiteralPath $LogFile -Raw) -replace "`e\[[0-9;]*m", ''
+    $hit = [regex]::Match($text, '(?i)could not find (?<kind>release|debug) keystore')
+    return $hit.Success ? $hit.Groups['kind'].Value.ToLowerInvariant() : $null
+}
+
+# The message for an export that has no keystore to sign with ($Kind from Get-MissingExportKeystore): the variables Godot
+# reads, and for a release build the debug build that needs none of them.
+function Get-KeystoreHint([string]$Preset, [string]$Kind) {
+    $upper = $Kind.ToUpperInvariant()
+    $vars = "set GODOT_ANDROID_KEYSTORE_${upper}_PATH, _USER and _PASSWORD"
+    if ($Kind -eq 'release') {
+        return "Export '$Preset' needs a release keystore: $vars (godot-export-release), or pass -DebugBuild for a debug build signed with the debug keystore"
+    }
+    return "Export '$Preset' needs a debug keystore: $vars, or set export/android/debug_keystore in the editor settings"
+}
+
 # The error lines of a log (Get-GodotLogErrors), each followed by where Godot said it happened ("at res://x.gd:20") when the
 # backtrace under it names a file; an error from an autoload at startup then carries its place into the failure.
 function Get-GodotErrorsLocated([string[]]$Lines) {

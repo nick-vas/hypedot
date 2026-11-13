@@ -121,11 +121,22 @@ try {
     if ((Get-MissingExportTemplate $exportLog) -ne 'C:/Users/Jane/AppData/Roaming/Godot/export_templates/4.7.2.stable.mono/linux_debug.x86_64') { $failures += "a path on the next line should be read, got '$(Get-MissingExportTemplate $exportLog)'" }
     $details = @(Get-GodotErrorDetails @(Get-Content -LiteralPath $exportLog))
     if ($details.Count -lt 1 -or $details[0].Text -notmatch 'configuration errors: No export template found at the expected path: C:/Users') { $failures += "the next line should join the message, got '$($details | ForEach-Object Text)'" }
+    # An Android export with no keystore to sign with: which one is read from the log, and the message names the fix.
+    Set-Content -LiteralPath $exportLog -Value @('ERROR: Code Signing: Could not find release keystore, unable to export.',
+        'ERROR: Project export for preset "Android" failed.')
+    if ((Get-MissingExportKeystore $exportLog) -ne 'release') { $failures += "a missing release keystore should be read from the log, got '$(Get-MissingExportKeystore $exportLog)'" }
+    $hint = Get-KeystoreHint 'Android' 'release'
+    if ($hint -notmatch 'GODOT_ANDROID_KEYSTORE_RELEASE_PATH' -or $hint -notmatch '-DebugBuild') { $failures += "the release keystore hint should name the variables and -DebugBuild, got '$hint'" }
+    Set-Content -LiteralPath $exportLog -Value "`e[1;31mERROR:`e[0;91m Code Signing: Could not find debug keystore, unable to export.`e[0m"
+    if ((Get-MissingExportKeystore $exportLog) -ne 'debug') { $failures += "a missing debug keystore should be read through colour codes, got '$(Get-MissingExportKeystore $exportLog)'" }
+    $hint = Get-KeystoreHint 'Android' 'debug'
+    if ($hint -notmatch 'GODOT_ANDROID_KEYSTORE_DEBUG_PATH' -or $hint -match '-DebugBuild') { $failures += "the debug keystore hint should name the debug variables and not offer -DebugBuild, got '$hint'" }
     # An error under an autoload names where it happened.
     $located = @(Get-GodotErrorsLocated @("SCRIPT ERROR: Invalid access to property or key 'x' on a base object of type 'null instance'.", '          at: _ready (res://addons/ggt-core/ggt.gd:20)'))
     if ($located.Count -ne 1 -or $located[0] -notmatch 'at res://addons/ggt-core/ggt\.gd:20$') { $failures += "an error should carry its place, got '$located'" }
     Set-Content -LiteralPath $exportLog -Value 'ERROR: something else'
     if ($null -ne (Get-MissingExportTemplate $exportLog)) { $failures += 'a log without the message should give no template path' }
+    if ($null -ne (Get-MissingExportKeystore $exportLog)) { $failures += 'a log without the message should give no keystore' }
     # An export checks its template files before the import and the build: Linux lacking, Windows present, others unchecked.
     $tpl = Join-Path $dir 'templates'
     New-Item -ItemType Directory -Force -Path $tpl | Out-Null

@@ -28,10 +28,10 @@ A C# compile error comes back as diagnostics[] (file, line, code); an engine err
 ### export
 Build, then export presets; -Run also launches each build this machine can run and fails on errors.
 
-    hyperdot.ps1 export -Json -Quiet [-Preset Windows] [-Run] [-GameVersion auto] [-Browser chromium,firefox]
+    hyperdot.ps1 export -Json -Quiet [-Preset Windows] [-Run] [-DebugBuild] [-GameVersion auto] [-Browser chromium,firefox]
 
 Web presets open in real browsers through Playwright. -GameVersion puts a version (a tag, or auto from git) into the
-build for this export only.
+build for this export only. -DebugBuild makes debug builds; on Android one needs no release keystore.
 
 ### setup
 Install the Godot version the project needs (and .NET for C#) into ~/.hyperdot; nothing else.
