@@ -24,6 +24,15 @@ keep its `.gdignore`: without it, the kit's `.gd` tool scripts (ten in `ci/godot
   leaves a workflow that still calls the kit by its old name (`Godot_TestSuite`) as it is when another one calls it too; `doctor` warns when two
   workflows call the kit, since two runs on every push in one concurrency group cancel each other.
 
+  The workflow runs on pull requests and on pushes to `main`, and not for a change to `docs/`, `plan/`, Markdown files or
+  `.gitignore` alone (`paths-ignore`): on a private repository every run spends the account's Actions minutes, and a
+  status or plan update is not worth one. The push to `main` stays, because it checks the merge (two pull requests that
+  pass apart can fail together) and saves the caches (Godot, export templates, the import) that pull requests read: GitHub
+  lets a pull request read the default branch's caches, and evicts a cache unused for 7 days. **If branch protection
+  requires this check**, a pull request that changes only documents never gets it and cannot merge; then remove
+  `paths-ignore` under `pull_request`, or do not require the check. A workflow an older `init` wrote has no
+  `paths-ignore`; copy the `on:` block from a new one to adopt it.
+
 With `-Agents` it also writes `AGENTS.md`, `CLAUDE.md` and `docs/kit-notes.md` (where the agent notes each
 time the kit got in the way), and enables the kit as a Claude Code plugin in `.claude/settings.json`. The plugin supplies the
 skills, the subagents and the hooks, so nothing is copied into the game and nothing there goes stale; the skills are named
