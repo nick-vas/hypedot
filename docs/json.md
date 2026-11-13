@@ -122,7 +122,10 @@ report), `coverage` (`linePercent`, `minimum`), `runnerResults[]` (`reason` says
 The `architecture` runner's entry also has `warnings[]` (`rule`, `file`, `line`, `message`): findings that do not fail the
 run. The `flows` and `validate` runners' entries have `warnings[]` with rule `engine-internal-error` when Godot's own C# bindings logged
 an error (`Handle is not initialized.`) while a file was checked: `file` is the flow or file that was running (`null` outside every one),
-`message` the error line; a file fails only on its own end marker or an error of its own. A rule set to `error` in the project's `architecture.json` reports its findings as `failures` instead.
+`message` the error line; a file fails only on its own end marker or an error of its own. They have a warning with rule `exit-leak`
+when Godot reported objects leaked at exit (`5 ObjectDB instances were leaked at exit`, `1 RID of type "CanvasItem" was leaked`): the leak
+lines, with `file` the last flow or file that ran (any of them may have made the leak). When the runner fails on its exit code, its
+failure also carries those lines, so a failed runner always names a reason. A rule set to `error` in the project's `architecture.json` reports its findings as `failures` instead.
 The `juice` runner has one case named `run` (Godot's exit and engine errors) and one per rule and feedback, named
 `<event> -> <feedback> within <ms> ms`; its log is `juice.log` in the results folder. The `playthrough` runner has `run` and one
 case per expected line, named `reached: <text>`, failed with the last milestone reached, or `Not checked` after the first one

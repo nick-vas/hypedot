@@ -1,0 +1,6 @@
+{
+  "scene": "res://orphan.tscn",
+  "steps": [
+    { "wait": 1 }
+  ]
+}
