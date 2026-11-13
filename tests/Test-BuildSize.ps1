@@ -81,6 +81,9 @@ try {
     [System.IO.File]::WriteAllBytes((Join-Path $zipped 'Game.zip'), [byte[]]::new(64))
     Assert-True ($null -eq (Get-ExportSizeBreakdown $zipped).pack) 'a folder with no readable pack has none'
 
+    # -DebugBuild belongs to export; elsewhere it is refused before anything runs.
+    $refused = (& pwsh -NoProfile -NonInteractive -File (Join-Path $root 'ci/godot/hyperdot.ps1') build -Json -DebugBuild -Project (Join-Path $root 'examples/gdscript') 2>$null) -join "`n" | ConvertFrom-Json
+    Assert-True (-not $refused.ok -and $refused.error.code -eq 'invalid-arguments' -and $refused.error.message -match 'for export') "-DebugBuild on build is refused: $($refused.error.message)"
     if ($NoGodot) { Write-Host 'skipped the export (-NoGodot)' }
     else {
         # A real export: the GDScript example with an SVG in art/ and a WAV in sounds/.
@@ -109,6 +112,18 @@ try {
             Assert-True ($folders -notcontains 'test') 'excluded folders are not in the pack'
             $inside = @($json.exports | Where-Object preset -eq 'Embedded')[0].size.pack
             Assert-True ($null -ne $inside -and $inside.file -eq 'game.x86_64 (embedded)' -and $inside.files -eq $linux.pack.files) "an embedded pack is read the same: $($inside | ConvertTo-Json -Compress -Depth 4)"
+            Assert-True (-not @($json.exports)[0].PSObject.Properties['debug']) 'a release export carries no debug field'
+            # export -DebugBuild: Godot's debug template, a different and larger executable than the release one.
+            $releaseExe = (Get-Item -LiteralPath @($json.exports | Where-Object preset -eq 'Linux')[0].file).Length
+            $debugOut = Join-Path $work 'out-debug'
+            $debugJson = (& pwsh -NoProfile -NonInteractive -File (Join-Path $root 'ci/godot/hyperdot.ps1') export -Json -DebugBuild -Preset Linux -Runners none -Project $game -Output $debugOut 2>$null) -join "`n" | ConvertFrom-Json
+            Assert-True ($debugJson.ok) "export -DebugBuild passes: $(if (-not $debugJson.ok) { $debugJson.error | ConvertTo-Json -Depth 10 -Compress })"
+            if ($debugJson.ok) {
+                $debugEntry = @($debugJson.exports)[0]
+                $debugExe = (Get-Item -LiteralPath $debugEntry.file).Length
+                Assert-True ($debugEntry.PSObject.Properties['debug'] -and $debugEntry.debug -eq $true) 'export -DebugBuild marks its entry debug: true'
+                Assert-True ($debugExe -gt $releaseExe) "export -DebugBuild uses the debug template: $debugExe bytes against the release build's $releaseExe"
+            }
         }
     }
 } finally {

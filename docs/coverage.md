@@ -10,7 +10,7 @@ gives the percentages and the floors CI holds them to.
 | Part | Items | Covered |
 |---|---|---|
 | [Commands](#commands) | 19 | 19 |
-| [Error codes](#error-codes) | 63 | 61 |
+| [Error codes](#error-codes) | 64 | 61 |
 | [Library files](#library-files) | 38 | 38 |
 | [Tools](#tools) | 23 | 23 |
 | [Skills](#skills) | 53 | 53 |
@@ -24,7 +24,7 @@ The values of `hyperdot.ps1`'s `-Command`, and the self-tests and workflow steps
 | Command | Covered by |
 |---|---|
 | `test` | `Test-DotnetTempDir.ps1`, `Test-EditCheck.ps1`, `Test-ErrorCodes.ps1`, `Test-ErrorKeys.ps1`, `Test-EvalGraders.ps1`, `Test-Flaky.ps1`, `Test-Flows.ps1`, `Test-Handoffs.ps1` and 22 more |
-| `build` | `Test-CrashRetry.ps1`, `Test-ErrorCodes.ps1` |
+| `build` | `Test-BuildSize.ps1`, `Test-CrashRetry.ps1`, `Test-ErrorCodes.ps1` |
 | `export` | `Test-BuildSize.ps1`, `Test-CrashRetry.ps1`, `Test-ErrorCodes.ps1`, `Test-GameVersion.ps1`, `Test-GpuValidation.ps1`, `Test-Web.ps1`, self-test.yml local-windows: Export the Windows build and launch it |
 | `setup` | `Test-BenchmarkIsolation.ps1`, `Test-DownloadFailed.ps1`, `Test-FieldTest.ps1`, `Test-GameBenchmark.ps1`, `Test-GameProgramme.ps1`, `Test-InstallLock.ps1`, self-test.yml field-test: Godot, self-test.yml game-benchmark: Godot and 1 more |
 | `detect` | `Test-Detect.ps1`, `Test-ErrorCodes.ps1`, `Test-Localization.ps1`, `Test-OldState.ps1`, `Test-Playthrough.ps1`, `Test-StopGate.ps1`, `Test-Telemetry.ps1`, self-test.yml init: The juice runner passes timely feedback and fails late feedback and 2 more |
@@ -60,10 +60,11 @@ The codes in [`docs/json.md`](json.md#error-codes), and the tests that raise the
 | `no-presets` | `Test-ErrorCodes.ps1` |
 | `preset-not-found` | `Test-ErrorCodes.ps1` |
 | `export-no-path` | `Test-CrashRetry.ps1`, `Test-ErrorCodes.ps1` |
+| `export-no-keystore` | **none** |
 | `export-template-missing` | **none** |
 | `unsafe-results-dir` | `Test-ResultsDir.ps1` |
 | `doctor-problems` | `Test-ErrorCodes.ps1`, `Test-Steam.ps1` |
-| `invalid-arguments` | `Test-BenchHotspots.ps1`, `Test-BenchSweep.ps1`, `Test-ColorVision.ps1`, `Test-Deck.ps1`, `Test-ErrorCodes.ps1`, `Test-GameVersion.ps1`, `Test-Handoffs.ps1`, `Test-Help.ps1` and 12 more |
+| `invalid-arguments` | `Test-BenchHotspots.ps1`, `Test-BenchSweep.ps1`, `Test-BuildSize.ps1`, `Test-ColorVision.ps1`, `Test-Deck.ps1`, `Test-ErrorCodes.ps1`, `Test-GameVersion.ps1`, `Test-Handoffs.ps1` and 13 more |
 | `no-plan` | `Test-ErrorCodes.ps1` |
 | `invalid-plan` | `Test-ErrorCodes.ps1`, `Test-Plan.ps1`, `Test-ProjectSync.ps1` |
 | `unknown-gate` | `Test-ErrorCodes.ps1`, `Test-Plan.ps1` |
@@ -124,7 +125,7 @@ The codes in [`docs/json.md`](json.md#error-codes), and the tests that raise the
 | `Assets.ps1` | 12/12 | `Test-AssetManifest.ps1`, `Test-Addons.ps1`, `Test-Audio.ps1`, `Test-Context.ps1`, `Test-DoctorFixture.ps1`, `Test-ErrorCodes.ps1`, `Test-Flaky.ps1`, `Test-OldState.ps1` and 6 more |
 | `Audio.ps1` | 10/11 | `Test-Localization.ps1`, `Test-SelectJobs.ps1`, `Test-Audio.ps1`, `Test-ErrorCodes.ps1`, `Test-AssetManifest.ps1`, `Test-Addons.ps1`, `Test-Context.ps1`, `Test-DoctorFixture.ps1` and 6 more |
 | `BuildSize.ps1` | 4/4 | `Test-BuildSize.ps1`, `Test-SelectJobs.ps1`, `Test-ErrorCodes.ps1` |
-| `Common.ps1` | 46/63 | `Test-ErrorKeys.ps1`, `Test-Flaky.ps1`, `Test-Deck.ps1`, `Test-BenchSweep.ps1`, `Test-GpuValidation.ps1`, `Test-Localization.ps1`, `Test-Flows.ps1`, `Test-Palette.ps1` and 54 more |
+| `Common.ps1` | 46/65 | `Test-ErrorKeys.ps1`, `Test-Flaky.ps1`, `Test-Deck.ps1`, `Test-BenchSweep.ps1`, `Test-GpuValidation.ps1`, `Test-Localization.ps1`, `Test-Flows.ps1`, `Test-Palette.ps1` and 54 more |
 | `Context.ps1` | 8/10 | `Test-Context.ps1`, `Test-Help.ps1`, `Test-DoctorFixture.ps1`, `Test-Addons.ps1`, `Test-AssetManifest.ps1`, `Test-Audio.ps1`, `Test-ErrorCodes.ps1`, `Test-Flaky.ps1` and 5 more |
 | `Credits.ps1` | 6/7 | `Test-Credits.ps1`, `Test-ErrorCodes.ps1` |
 | `Data.ps1` | 0/20 | `Test-Data.ps1` |
@@ -301,6 +302,7 @@ A job of `self-test.yml` is a test itself (it lists what it runs); another workf
 
 ## Gaps
 
+- Code `export-no-keystore`
 - Code `export-template-missing`
 - Code `checksum-mismatch`
 - Job `canary.yml/propose`: opens the pull request and the issues with the write token, from the patch `try` made; `Test-WorkflowLint.ps1` checks that it runs no upstream code; the rest needs the real repository

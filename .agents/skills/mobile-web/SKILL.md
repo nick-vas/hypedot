@@ -152,7 +152,8 @@ steps, `ui-flows`), and check text at the smallest aspect ratio in each orientat
 - **Signing:** `GODOT_ANDROID_KEYSTORE_RELEASE_PATH`, `_USER` and `_PASSWORD` (the keystore and key passwords must
   match). Google Play wants an AAB, which needs a Gradle build: `--install-android-build-template`, then
   `gradle_build/use_gradle_build=true` and `gradle_build/export_format=1`. It uses about 1.2 GB of Gradle cache, and
-  Maven Central can answer 429 on shared runners, so retry once.
+  Maven Central can answer 429 on shared runners, so retry once. No keystore yet: `export -Preset Android -DebugBuild`
+  makes a debug APK for a first run on a device (without one, `export` fails with `export-no-keystore`).
 - **Google Play:** new apps and updates must target API 36 since 31 August 2026; 4.7's default target is 36, minimum 24.
   From 1 February 2027, updates must support 16 KB memory pages. 4.7.2's libraries passed `zipalign -c -P 16`.
 - **Launch tests** need a device or an emulator with KVM (GitHub's Linux runners have it); none ran here.

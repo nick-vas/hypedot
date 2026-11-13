@@ -81,6 +81,8 @@ param(
     [string[]]$Preset,
     # export: also launch each build this machine can run (e.g. Windows builds on Windows) and fail on errors.
     [switch]$Run,
+    # export: a debug build (--export-debug) in place of a release build; Android signs it with the debug keystore.
+    [switch]$DebugBuild,
     # export -Run of a Web preset: the browsers to open it in (chromium, chrome, msedge, firefox, webkit), through Playwright.
     [string[]]$Browser = @('chromium'),
     # export: the game's version, e.g. a tag such as v1.2.3-rc.1. Its numbers (1.2.3) become config/version for this export
@@ -262,6 +264,7 @@ Assert-KitArguments $MyInvocation.MyCommand.ScriptBlock.Ast.ParamBlock $PSBoundP
 
 # help needs no project: it is answered before one is looked for.
 if ($Topic -and $Command -notin 'help', 'telemetry') { Stop-GodotCi "'$Topic' is not a parameter of $Command; only help and telemetry take a name (help $Topic)" 'invalid-arguments' }
+if ($DebugBuild -and $Command -ne 'export') { Stop-GodotCi "-DebugBuild is for export (a debug build in place of a release build), not $Command" 'invalid-arguments' }
 if ($PSBoundParameters.ContainsKey('ReportIssue') -and $Command -ne 'doctor') { Stop-GodotCi '-ReportIssue is for doctor (it offers to file an issue about kit files that are not committed)' 'invalid-arguments' }
 foreach ($initOnly in 'CopySkills', 'PluginSource') {
     if ($PSBoundParameters.ContainsKey($initOnly) -and $Command -ne 'init') { Stop-GodotCi "-$initOnly is for init (how the skills reach the game)" 'invalid-arguments' }
@@ -586,13 +589,16 @@ function Invoke-ExportPresets {
         Start-LogGroup "Export '$name' -> $file"
         $log = [System.IO.Path]::GetTempFileName()
         # Godot 4.7.2 headless sometimes aborts (134) at shutdown after a finished export; the export is repeated then.
-        $run = Invoke-GodotRetried @('--headless', '--path', $info.ProjectDir, '--export-release', $name, $file) $log "export '$name'" $file
+        $mode = if ($DebugBuild) { '--export-debug' } else { '--export-release' }
+        $run = Invoke-GodotRetried @('--headless', '--path', $info.ProjectDir, $mode, $name, $file) $log "export '$name'" $file
         $code = $run.Code
         Stop-LogGroup
         if ($code -ne 0) {
             Set-EngineErrors @(Get-GodotErrorDetails @(Get-Content -LiteralPath $log))
             $template = Get-MissingExportTemplate $log
             if ($template) { Stop-GodotCi "Export '$name' has no export template at $template; install Godot's export templates for this version and platform" 'export-template-missing' }
+            $keystore = Get-MissingExportKeystore $log
+            if ($keystore) { Stop-GodotCi (Get-KeystoreHint $name $keystore) 'export-no-keystore' }
             Stop-GodotCi "Export '$name' exited with $code$(if ($run.Retries) { " after $($run.Retries) retries of a crash" })" 'export-failed'
         }
         if (-not (Test-Path -LiteralPath $file)) { Stop-GodotCi "Export '$name' finished but $file was not created" 'export-failed' }
@@ -614,6 +620,7 @@ function Invoke-ExportPresets {
         }
 
         $entry = [ordered]@{ preset = $name; platform = $preset.Platform; file = $file; size = $size }
+        if ($DebugBuild) { $entry.debug = $true }
         if ($run.Retries) { $entry.retried = $run.Retries }
         if ($preset.Platform -eq 'Web') {
             $entry.web = Get-WebBuildSize $dir
@@ -623,23 +630,27 @@ function Invoke-ExportPresets {
         Set-JsonField exports $exports
         if ($Run -and $preset.Platform -eq 'Web') {
             if ($GpuValidation) { Write-CiLog "-GpuValidation: the browser renders '$name' with WebGL, which has no validation layers; not validated" }
-            Test-WebExport $name $preset $dir
+            Test-WebExport $name $preset $dir $(if ($DebugBuild) { $file })
         }
         elseif ($Run) { Test-ExportedBuild $name $preset.Platform $file $entry }
     }
 }
 
 # Opens a web export in real browsers. Release builds skip script errors silently (a call on null just does nothing),
-# so a debug export of the same preset is what gets played; a threads build is served with the headers it needs.
-function Test-WebExport([string]$Name, $Preset, [string]$ReleaseDir) {
-    $debugDir = "$ReleaseDir-debug"
-    New-Item -ItemType Directory -Force $debugDir | Out-Null
-    $log = [System.IO.Path]::GetTempFileName()
-    Start-LogGroup "Export '$Name' (debug, for the browser run)"
-    $debugFile = Join-Path $debugDir (Split-Path $Preset.ExportPath -Leaf)
-    $code = (Invoke-GodotRetried @('--headless', '--path', $info.ProjectDir, '--export-debug', $Name, $debugFile) $log "debug export '$Name'" $debugFile).Code
-    Stop-LogGroup
-    if ($code -ne 0) { Stop-GodotCi "Debug export of '$Name' exited with $code" 'export-failed' }
+# so a debug export of the same preset is what gets played (export -DebugBuild passes the one it made as $DebugFile);
+# a threads build is served with the headers it needs.
+function Test-WebExport([string]$Name, $Preset, [string]$ReleaseDir, [string]$DebugFile = '') {
+    if ($DebugFile) { $debugDir = Split-Path $DebugFile }
+    else {
+        $debugDir = "$ReleaseDir-debug"
+        New-Item -ItemType Directory -Force $debugDir | Out-Null
+        $log = [System.IO.Path]::GetTempFileName()
+        Start-LogGroup "Export '$Name' (debug, for the browser run)"
+        $debugFile = Join-Path $debugDir (Split-Path $Preset.ExportPath -Leaf)
+        $code = (Invoke-GodotRetried @('--headless', '--path', $info.ProjectDir, '--export-debug', $Name, $debugFile) $log "debug export '$Name'" $debugFile).Code
+        Stop-LogGroup
+        if ($code -ne 0) { Stop-GodotCi "Debug export of '$Name' exited with $code" 'export-failed' }
+    }
     $threads = "$($Preset.Options['variant/thread_support'])" -eq 'true'
     $runs = Invoke-WebSmoke $debugDir @($Browser | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ }) $threads (Join-Path $debugDir 'screenshot')
     $all = @($script:JsonDoc['webRuns'] | Where-Object { $_ }) + @(foreach ($r in $runs) { $r.preset = $Name; $r })

@@ -46,6 +46,7 @@ Branch on `error.code`; `message` can change.
 | `no-coverage` | `-MinCoverage` set but nothing was collected | - |
 | `export-failed`, `no-presets`, `preset-not-found` | Export problems | `exports[]` (completed so far) |
 | `export-no-path` | A preset to export has an empty `export_path`; found before anything is built or downloaded | |
+| `export-no-keystore` | An Android export found no keystore to sign with (Godot: "Could not find release keystore"). The message names the variables to set (`GODOT_ANDROID_KEYSTORE_RELEASE_PATH`, `_USER`, `_PASSWORD`) and, for a release build, `-DebugBuild` | `engineErrors[]`, `exports[]` |
 | `export-template-missing` | An export template for the preset's platform and version is not installed. For Windows Desktop and Linux presets the kit checks the template files itself before the import and the build; other platforms are found out by Godot's export. The path is in the message | `engineErrors[]`, `exports[]` |
 | `unsafe-results-dir` | `-Results` would delete the project or cwd, or a non-empty folder inside the project that holds no `summary.json` or `hyperdot.log` of the kit's | - |
 | `doctor-problems` | `doctor` found `FAIL` checks | `checks[]` |
@@ -250,7 +251,7 @@ groups the history by key (`recurringErrors`), after Activision's error buckets 
 ([gdc/call-of-duty-error-keys.md](gdc/call-of-duty-error-keys.md)).
 The plugin's Stop hook and the `retro` skill read it, and `telemetry` reports on it.
 
-**export**: `exports[]`: `preset`, `platform`, `file`, `size` (below), `retried` (1 or 2, present when Godot crashed during the export, an exit code of 128 or more or a negative one, and the export was run again; the export's file is deleted first, and a crash on every run still fails with `export-failed`), and for Web presets `web` (`files`, `rawMb`, `gzipMb`: the export
+**export**: `exports[]`: `preset`, `platform`, `file`, `size` (below), `debug` (`true` with `-DebugBuild`, absent otherwise), `retried` (1 or 2, present when Godot crashed during the export, an exit code of 128 or more or a negative one, and the export was run again; the export's file is deleted first, and a crash on every run still fails with `export-failed`), and for Web presets `web` (`files`, `rawMb`, `gzipMb`: the export
 folder's download size), and with `-Run -GpuValidation`, for a build launched on this machine, `gpuValidation` (see below; the
 build then runs with a window instead of headless, and a Web build, drawn with WebGL, is not validated); with `-Run`, `webRuns[]` for Web presets: `preset`, `browser`, `ok`, `started`, `startMs`, `notice`
 (Godot's message when the engine cannot start), `crossOriginIsolated`, `renderer`, `screenshot` (in `<preset>-debug`, not the
