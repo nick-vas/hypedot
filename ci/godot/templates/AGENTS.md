@@ -21,5 +21,6 @@ pwsh {{SUITE}} help                   # every command, flag and skill
   decision in `docs/decisions/` is accepted before code is written.
 - `docs/GDD.md` is the scope. Before building anything it does not contain, ask: add it as a feature, or drop it. Tag each test that proves a feature with `GDD:F<n>`.
 - Game-specific lessons are in `docs/lessons.md`; read it before changing a system it mentions.
+- Push a branch once, when the work is done and the full local test has passed; put a status or plan update in the same push.
 - When the kit gets in the way (a wrong flag, a confusing error, a missing check), append one line to `docs/kit-notes.md`.
 - End each reply with `Certainty: NN%` and a clause saying what it rests on: what was run or read, and what was not checked.

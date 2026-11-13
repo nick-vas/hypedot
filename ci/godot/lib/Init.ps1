@@ -63,10 +63,24 @@ function New-CiWorkflow([string]$ProjectDir) {
 # @v1 follows the kit's releases; move to another tag or commit on purpose, in a commit of its own.
 name: Godot
 
+# Each run uses the account's Actions minutes when the repository is private. A change to documents or the plan alone
+# starts no run. A push to main still runs: it checks the merge, and it saves the caches (Godot, templates, the import)
+# that pull requests read. If branch protection requires this check, a skipped pull request waits for it forever:
+# remove paths-ignore under pull_request, or do not require the check (https://github.com/nick-vas/hyperdot/blob/main/docs/usage.md).
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - 'docs/**'
+      - 'plan/**'
+      - '**/*.md'
+      - '.gitignore'
   pull_request:
+    paths-ignore:
+      - 'docs/**'
+      - 'plan/**'
+      - '**/*.md'
+      - '.gitignore'
   workflow_dispatch:
 
 concurrency:
@@ -82,7 +96,7 @@ jobs:
     with:$projectInput
       coverage: true
 "@
-    Write-InitStep added ".github/workflows/hyperdot.yml (tests on every push to main and every pull request)"
+    Write-InitStep added ".github/workflows/hyperdot.yml (tests on pull requests and pushes to main, except changes to documents or the plan alone)"
 }
 
 function Add-CSharpTestSetup([string]$ProjectDir, $Info) {

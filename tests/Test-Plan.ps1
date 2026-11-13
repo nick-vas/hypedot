@@ -404,6 +404,15 @@ try {
     # The workflow init writes calls the kit's moving v1 tag, not main, so a kit change reaches a game only with a release.
     $workflow = Get-Content -LiteralPath (Join-Path $starter '.github/workflows/hyperdot.yml') -Raw
     Assert-True ($workflow -match 'uses: nick-vas/hyperdot/\.github/workflows/godot\.yml@v1\s' -and $workflow -notmatch '@main') 'init pins the workflow at @v1'
+    # Runs on pull requests and on pushes to main (the merge check, and the caches pull requests read), both without
+    # document-only changes: a private repository pays for every run.
+    $on = [regex]::Match($workflow, '(?ms)^on:\r?\n(?<body>.*?)^\S').Groups['body'].Value
+    $triggers = @([regex]::Matches($on, '(?m)^  (?<name>[a-z_]+):') | ForEach-Object { $_.Groups['name'].Value })
+    Assert-True (($triggers -join ',') -eq 'push,pull_request,workflow_dispatch') "the workflow runs on push, pull_request and workflow_dispatch: $($triggers -join ',')"
+    Assert-True ($on -match '(?m)^  push:\r?\n    branches: \[main\]\r?\n    paths-ignore:') 'a push runs only on main, with paths-ignore'
+    foreach ($ignored in "'docs/**'", "'plan/**'", "'**/*.md'", "'.gitignore'") {
+        Assert-True ([regex]::Matches($on, "(?m)^      - $([regex]::Escape($ignored))\r?$").Count -eq 2) "push and pull_request both ignore $ignored"
+    }
     # With the agent files comes docs/kit-notes.md, where the agent notes each time the kit got in the way; never overwritten.
     pwsh -NoProfile -NonInteractive -File $ci init -Plugin -Project $starter 2>$null | Out-Null
     $notes = Join-Path $starter 'docs/kit-notes.md'
